@@ -9,6 +9,7 @@
         <result property="email"        column="email"/>
         <result property="password"     column="password"/>
         <result property="nickname"     column="nickname"/>
+        <result property="birthDate"    column="birth_date"/>
         <result property="memberStatus" column="member_status"/>
         <result property="memberRole"   column="member_role"/>
         <result property="createdAt"    column="created_at"/>
@@ -16,13 +17,13 @@
     </resultMap>
 
     <select id="findById" resultMap="memberResultMap">
-        SELECT user_id, email, password, nickname, member_status, member_role, created_at, updated_at
+        SELECT user_id, email, password, nickname, birth_date, member_status, member_role, created_at, updated_at
         FROM member
         WHERE user_id = #{id}
     </select>
 
     <select id="findByEmail" resultMap="memberResultMap">
-        SELECT user_id, email, password, nickname, member_status, member_role, created_at, updated_at
+        SELECT user_id, email, password, nickname, birth_date, member_status, member_role, created_at, updated_at
         FROM member
         WHERE email = #{email}
     </select>
@@ -34,8 +35,8 @@
     </select>
 
     <insert id="save" useGeneratedKeys="true" keyProperty="userId">
-        INSERT INTO member (email, password, nickname, member_status, member_role, created_at, updated_at)
-        VALUES (#{email}, #{password}, #{nickname}, #{memberStatus}, #{memberRole}, NOW(), NOW())
+        INSERT INTO member (email, password, nickname, birth_date, member_status, member_role, created_at, updated_at)
+        VALUES (#{email}, #{password}, #{nickname}, #{birthDate}, #{memberStatus}, #{memberRole}, NOW(), NOW())
     </insert>
 
     <update id="update">

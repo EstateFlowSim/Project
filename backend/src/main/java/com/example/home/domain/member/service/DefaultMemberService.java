@@ -6,7 +6,10 @@ import com.example.home.domain.member.entity.Member;
 import com.example.home.domain.member.repository.MemberRepository;
 import com.example.home.global.enums.MemberRole;
 import com.example.home.global.enums.MemberStatus;
+import com.example.home.global.exception.BusinessException;
+import com.example.home.global.exception.docs.ErrorCode;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -14,15 +17,22 @@ import org.springframework.stereotype.Service;
 public class DefaultMemberService implements MemberService {
 
     private final MemberRepository memberRepository;
+    private final PasswordEncoder passwordEncoder;
 
     @Override
     public MemberResponse findById(Long id) {
-        return MemberResponse.from(memberRepository.findById(id));
+        Member member = memberRepository.findById(id);
+        if(member == null)
+            throw new BusinessException(ErrorCode.USER_NOT_FOUND);
+        return MemberResponse.from(member);
     }
 
     @Override
     public boolean existsById(Long id) {
-        return memberRepository.findById(id) != null;
+        Member member = memberRepository.findById(id);
+        if(member == null)
+            return false;
+        return true;
     }
 
     @Override
@@ -32,10 +42,14 @@ public class DefaultMemberService implements MemberService {
 
     @Override
     public void register(MemberRequest request) {
+        if (memberRepository.existsByEmail(request.email())) {
+            throw new BusinessException(ErrorCode.DUPLICATE_VALUE);
+        }
         Member member = Member.builder()
                 .email(request.email())
-                .password(request.password()) // TODO: JWT 연동 시 PasswordEncoder 암호화 적용
+                .password(passwordEncoder.encode(request.password()))
                 .nickname(request.nickname())
+                .birthDate(request.birthDate())
                 .memberStatus(MemberStatus.ACTIVE)
                 .memberRole(MemberRole.ROLE_USER)
                 .build();
@@ -44,6 +58,9 @@ public class DefaultMemberService implements MemberService {
 
     @Override
     public void update(Long id, MemberRequest request) {
+        if (!existsById(id)) {
+            throw new BusinessException(ErrorCode.USER_NOT_FOUND);
+        }
         Member member = Member.builder()
                 .userId(id)
                 .nickname(request.nickname())
@@ -53,6 +70,9 @@ public class DefaultMemberService implements MemberService {
 
     @Override
     public void delete(Long id) {
+        if (!existsById(id)) {
+            throw new BusinessException(ErrorCode.USER_NOT_FOUND);
+        }
         memberRepository.deleteById(id);
     }
 }
