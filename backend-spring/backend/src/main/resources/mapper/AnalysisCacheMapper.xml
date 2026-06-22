@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.example.home.domain.analysis.repository.AnalysisCacheRepository">
+
+    <resultMap id="analysisCacheResultMap" type="com.example.home.domain.analysis.entity.AnalysisCache">
+        <id     property="cacheId"         column="cache_id"/>
+        <result property="eventId"         column="event_id"/>
+        <result property="windowMonths"    column="window_months"/>
+        <result property="regionSignature" column="region_signature"/>
+        <result property="resultJson"      column="result_json"/>
+        <result property="createdAt"       column="created_at"/>
+    </resultMap>
+
+    <select id="findByKey" resultMap="analysisCacheResultMap">
+        SELECT cache_id, event_id, window_months, region_signature, result_json, created_at
+        FROM analysis_cache
+        WHERE event_id         = #{eventId}
+          AND window_months    = #{windowMonths}
+          AND region_signature = #{regionSignature}
+    </select>
+
+    <insert id="save" useGeneratedKeys="true" keyProperty="cacheId">
+        INSERT INTO analysis_cache (event_id, window_months, region_signature, result_json, created_at)
+        VALUES (#{eventId}, #{windowMonths}, #{regionSignature}, #{resultJson}, NOW())
+    </insert>
+
+</mapper>
