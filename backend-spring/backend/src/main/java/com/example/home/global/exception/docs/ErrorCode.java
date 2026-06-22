@@ -40,6 +40,7 @@ public enum ErrorCode {
     // 500 Internal Server Error
     SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "E500", "서버 작업 중 예상치 못한 오류가 발생했습니다."),
     REDIS_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "E503", "인증 세션 저장에 실패했습니다."),
+    AI_SERVER_ERROR(HttpStatus.BAD_GATEWAY, "A502", "AI 분석 서버와 통신에 실패했습니다."),
     ;
 
     private final HttpStatus status;
