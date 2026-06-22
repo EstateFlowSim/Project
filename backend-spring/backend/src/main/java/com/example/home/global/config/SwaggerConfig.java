@@ -49,4 +49,12 @@ public class SwaggerConfig {
                 .pathsToMatch("/api/notices/**")
                 .build();
     }
+    
+    @Bean
+    GroupedOpenApi analysisOpenAPI() {
+        return GroupedOpenApi.builder()
+                .group("Analysis 관련 API")
+                .pathsToMatch("/api/analysis/**")
+                .build();
+    }
 }
