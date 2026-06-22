@@ -3,3 +3,11 @@
 raw/
 processed/
 __pycache__/
+.metadata/
+*.lock
+*.lock_info
+*.log
+*.ini
+*.zip
+*.json
+*.snap
