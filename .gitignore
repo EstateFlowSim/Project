@@ -10,7 +10,18 @@ __pycache__/
 *.log
 *.ini
 *.zip
+
 *.json
 !frontend/public/geojson/seoul.json
 !frontend/public/geojson/gyeonggi.json
+
 *.snap
+
+# FastAPI 데이터 파일만 제한 (전역 *.json 제거)
+backend-fastAPI/**/*.json
+backend-fastAPI/result/*.duckdb
+
+# 로컬 환경 설정 (민감 정보 포함)
+backend-spring/**/application-local.properties
+backend-spring/**/application-dev.properties
+backend-spring/**/application-prod.properties
