@@ -2,13 +2,17 @@ package com.example.home.domain.report.controller;
 
 import com.example.home.domain.report.dto.CreateReportRequest;
 import com.example.home.domain.report.dto.ReportDocument;
+import com.example.home.domain.report.service.ReportPdfService;
 import com.example.home.domain.report.service.ReportService;
 import com.example.home.global.util.BaseResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -24,6 +28,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class ReportController {
 
     private final ReportService reportService;
+    private final ReportPdfService reportPdfService;
 
     @Operation(
             summary = "AI 리포트 생성",
@@ -38,5 +43,17 @@ public class ReportController {
     @GetMapping("/{reportId}")
     public ResponseEntity<BaseResponse<ReportDocument>> get(@PathVariable String reportId) {
         return ResponseEntity.ok(BaseResponse.success("리포트 조회 완료", reportService.get(reportId)));
+    }
+
+    @Operation(summary = "리포트 PDF 다운로드", description = "생성된 리포트를 PDF 파일로 반환합니다.")
+    @GetMapping(value = "/{reportId}/pdf", produces = MediaType.APPLICATION_PDF_VALUE)
+    public ResponseEntity<byte[]> downloadPdf(@PathVariable String reportId) {
+        byte[] pdf = reportPdfService.render(reportService.get(reportId));
+        String filename = "estateflow-report-" + reportId + ".pdf";
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION,
+                        ContentDisposition.attachment().filename(filename).build().toString())
+                .contentType(MediaType.APPLICATION_PDF)
+                .body(pdf);
     }
 }

@@ -29,6 +29,7 @@
 	</scm>
 	<properties>
 		<java.version>21</java.version>
+		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<spring-ai.version>2.0.0-M8</spring-ai.version>
 	</properties>
 	<dependencyManagement>
@@ -123,6 +124,12 @@
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-webflux</artifactId>
+		</dependency>
+
+		<dependency>
+			<groupId>org.apache.pdfbox</groupId>
+			<artifactId>pdfbox</artifactId>
+			<version>2.0.24</version>
 		</dependency>
 
 		<!-- Jackson XML (국토부 API XML 파싱) -->
