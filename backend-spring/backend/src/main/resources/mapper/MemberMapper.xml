@@ -26,12 +26,14 @@
         SELECT user_id, email, password, nickname, birth_date, member_status, member_role, created_at, updated_at
         FROM member
         WHERE email = #{email}
+          AND member_status = 'ACTIVE'
     </select>
 
     <select id="existsByEmail" resultType="boolean">
         SELECT COUNT(*) > 0
         FROM member
         WHERE email = #{email}
+          AND member_status != 'WITHDRAWN'
     </select>
 
     <insert id="save" useGeneratedKeys="true" keyProperty="userId">
@@ -46,9 +48,11 @@
         WHERE user_id = #{userId}
     </update>
 
-    <delete id="deleteById">
-        DELETE FROM member
+    <update id="deleteById">
+        UPDATE member
+        SET member_status = 'WITHDRAWN',
+            updated_at    = NOW()
         WHERE user_id = #{id}
-    </delete>
+    </update>
 
 </mapper>

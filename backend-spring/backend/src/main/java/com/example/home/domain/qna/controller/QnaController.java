@@ -63,13 +63,13 @@ public class QnaController {
         return ResponseEntity.ok().build();
     }
 
-    @Operation(summary = "답변 완료 여부 수정 (관리자 전용)")
-    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "답변 완료 여부 수정 (작성자 또는 관리자)")
+    @PreAuthorize("isAuthenticated()")
     @PatchMapping("/{id}/answered")
     public ResponseEntity<Void> updateAnswered(
             @Parameter(description = "Q&A ID") @PathVariable Long id,
             @RequestBody QnaAnsweredRequest request) {
-        qnaService.updateAnswered(id, request.answered());
+        qnaService.updateAnswered(id, SecurityUtils.getCurrentUserId(), SecurityUtils.isAdmin(), request.answered());
         return ResponseEntity.ok().build();
     }
 

@@ -65,8 +65,10 @@ public class DefaultQnaService implements QnaService {
     }
 
     @Override
-    public void updateAnswered(Long id, boolean answered) {
-        if (qnaRepository.findById(id) == null) throw new BusinessException(ErrorCode.QNA_NOT_FOUND);
+    public void updateAnswered(Long id, Long userId, boolean isAdmin, boolean answered) {
+        Qna qna = qnaRepository.findById(id);
+        if (qna == null) throw new BusinessException(ErrorCode.QNA_NOT_FOUND);
+        if (!isAdmin && !qna.getWriterId().equals(userId)) throw new BusinessException(ErrorCode.FORBIDDEN_ERROR);
         qnaRepository.updateAnswered(id, answered);
     }
 
