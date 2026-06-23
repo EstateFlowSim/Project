@@ -10,4 +10,6 @@ __pycache__/
 *.ini
 *.zip
 *.json
+!frontend/public/geojson/seoul.json
+!frontend/public/geojson/gyeonggi.json
 *.snap
