@@ -24,11 +24,15 @@ export const useAnalysisStore = defineStore('analysis', () => {
 
   // ── Actions ───────────────────────────────────────────────────────────────
   async function fetchEvents(): Promise<void> {
+    loading.value = true
+    error.value   = null
     try {
       const res    = await getEvents()
       events.value = res.detail.events
     } catch (e) {
       error.value = e instanceof Error ? e.message : '이벤트 목록 조회 실패'
+    } finally {
+      loading.value = false
     }
   }
 
