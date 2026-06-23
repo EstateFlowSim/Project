@@ -2,11 +2,13 @@
 import { watch, onMounted, onUnmounted } from 'vue'
 import mapboxgl from 'mapbox-gl'
 import 'mapbox-gl/dist/mapbox-gl.css'
-import type { District } from '@/types/analysis'
+import type { RegionResult } from '@/types/analysis'
+import { LAWD_CD_TO_NAME } from '@/constants/regionCodes'
+import { valToColor } from '@/utils/colorScale'
 
 const props = defineProps<{
-  districts: District[]
-  curMonth: number
+  regions: RegionResult[]
+  currentRelativeMonth: number   // -3 ~ +windowMonths
   showLabels: boolean
 }>()
 
@@ -16,48 +18,44 @@ let baseGeoJSON: Record<string, unknown> | null = null
 let mapLoaded = false
 let animId: number | null = null
 const dispVals: Record<string, number> = {}
-const districtMap: Record<string, District> = {}
+const regionMap: Record<string, RegionResult> = {}
 
-function buildDistrictMap() {
-  Object.keys(districtMap).forEach(k => delete districtMap[k])
-  props.districts.forEach(d => { districtMap[d.name] = d })
+function buildRegionMap() {
+  Object.keys(regionMap).forEach(k => delete regionMap[k])
+  props.regions.forEach(r => {
+    const name = LAWD_CD_TO_NAME[r.dong_code]
+    if (name) regionMap[name] = r
+  })
 }
 
-function valToColor(v: number): string {
-  if (v >= 15) return '#ff1133'
-  if (v >= 10) return '#ff6622'
-  if (v >= 5)  return '#ffcc22'
-  if (v >= 0)  return '#334466'
-  if (v >= -5) return '#2255cc'
-  return '#1133aa'
-}
-
+// monthly 실제 데이터에서 해당 상대월의 가격 변화율을 가져옴
 function getTarget(name: string): number {
-  const d = districtMap[name]
-  if (!d) return 0
-  const ms = props.curMonth - 3
-  if (ms < d.lag) return 0
-  return d.change * Math.min(1, (ms - d.lag + 1) / 2.0)
+  const region = regionMap[name]
+  if (!region) return 0
+  const md = region.monthly.find(m => m.relative_month === props.currentRelativeMonth)
+  return md?.price_change_from_event_pct ?? 0
 }
 
 function pushMapData() {
   if (!baseGeoJSON || !map) return
   const features = (baseGeoJSON.features as Array<Record<string, unknown>>).map(f => {
-    const p    = f.properties as Record<string, unknown>
-    const name = p.name as string
-    const d    = districtMap[name]
-    const v    = dispVals[name] ?? 0
-    const col  = valToColor(v)
+    const p      = f.properties as Record<string, unknown>
+    const name   = p.name as string
+    const region = regionMap[name]
+    const v      = dispVals[name] ?? 0
+    const col    = valToColor(v)
+    const lag    = region?.window_summary.lag_months ?? null
+    const active = lag !== null && props.currentRelativeMonth >= lag ? 1 : 0
     return {
       ...f,
       properties: {
         ...p,
         value:      v,
-        height:     Math.max(0, v) * 200,
+        height:     region ? Math.max(0, v) * 200 : 0,
         base:       0,
-        fillColor:  col,
-        labelColor: Math.abs(v) > 2 ? col : 'rgba(255,255,255,0.4)',
-        active:     d ? ((props.curMonth - 3) >= d.lag ? 1 : 0) : 0,
+        fillColor:  region ? col : '#112233',
+        labelColor: region && Math.abs(v) > 2 ? col : 'rgba(255,255,255,0.3)',
+        active,
       },
     }
   })
@@ -69,15 +67,15 @@ function startAnim() {
   if (animId !== null) cancelAnimationFrame(animId)
   function loop() {
     let moved = false
-    props.districts.forEach(d => {
-      const target = getTarget(d.name)
-      const cur    = dispVals[d.name] ?? 0
+    Object.keys(regionMap).forEach(name => {
+      const target = getTarget(name)
+      const cur    = dispVals[name] ?? 0
       const diff   = target - cur
-      if (Math.abs(diff) > 0.01 && (props.curMonth - 3) >= d.lag) {
-        dispVals[d.name] = cur + diff * LERP
+      if (Math.abs(diff) > 0.01) {
+        dispVals[name] = cur + diff * LERP
         moved = true
       } else if (cur !== target) {
-        dispVals[d.name] = target
+        dispVals[name] = target
         moved = true
       }
     })
@@ -94,15 +92,12 @@ function setProgress(pct: number, txt: string) {
   if (text) text.textContent = txt
 }
 
+// 서울 25구 전체 로드 — regions가 없어도 지도 구조는 유지
 async function loadGeoJSON(): Promise<Record<string, unknown>> {
   setProgress(20, '서울 행정구역 로딩...')
   const geo = await (await fetch('/geojson/seoul.json')).json() as Record<string, unknown>
-  setProgress(80, '데이터 연결 중...')
-  const TARGET_NAMES = new Set(props.districts.map(d => d.name))
-  const features = (geo.features as Array<{ properties: { name: string } }>)
-    .filter(f => TARGET_NAMES.has(f.properties.name))
   setProgress(90, '지도 레이어 생성...')
-  return { type: 'FeatureCollection', features }
+  return geo
 }
 
 // 라벨 visibility
@@ -112,17 +107,15 @@ watch(() => props.showLabels, val => {
   }
 })
 
-// districts 교체 시 dispVals 리셋 (이벤트 전환 또는 API 결과 반영)
-watch(() => props.districts, newDistricts => {
-  buildDistrictMap()
-  newDistricts.forEach(d => { dispVals[d.name] = 0 })
+// regions 교체 시 → regionMap 재구성 + dispVals 리셋
+watch(() => props.regions, () => {
+  Object.keys(dispVals).forEach(k => { dispVals[k] = 0 })
+  buildRegionMap()
+  if (mapLoaded) pushMapData()
 })
 
 onMounted(() => {
-  buildDistrictMap()
-  props.districts.forEach(d => { dispVals[d.name] = 0 })
-
-  mapboxgl.accessToken = import.meta.env.VITE_MAPBOX_TOKEN as string
+  buildRegionMap()
 
   map = new mapboxgl.Map({
     container: 'map',
@@ -146,8 +139,8 @@ onMounted(() => {
         properties: {
           ...(f.properties as object),
           value: 0, height: 0, base: 0,
-          fillColor:  '#223344',
-          labelColor: 'rgba(255,255,255,0.4)',
+          fillColor:  '#112233',
+          labelColor: 'rgba(255,255,255,0.3)',
           active: 0,
         },
       }))
@@ -200,23 +193,30 @@ onMounted(() => {
         map!.getCanvas().style.cursor = 'pointer'
         const feature = e.features?.[0] as unknown as { properties: Record<string, unknown> } | undefined
         if (!feature) return
-        const name = feature.properties.name as string
-        const d = districtMap[name]
-        if (!d) return
-        const v   = dispVals[name] ?? 0
-        const col = valToColor(d.change)
-        const act = (props.curMonth - 3) >= d.lag
+        const name   = feature.properties.name as string
+        const region = regionMap[name]
+        if (!region) return
+
+        const v      = dispVals[name] ?? 0
+        const ws     = region.window_summary
+        const lag    = ws.lag_months
+        const active = lag !== null && props.currentRelativeMonth >= lag
+        const col    = valToColor(ws.final_price_change_pct)
 
         const ttName = document.getElementById('ttName')
         if (ttName) { ttName.textContent = name; ttName.style.color = col }
+
         const ttChange = document.getElementById('ttChange')
-        if (ttChange) ttChange.textContent = act ? (v >= 0 ? '+' : '') + v.toFixed(1) + '%' : '미반응'
+        if (ttChange) ttChange.textContent = active ? (v >= 0 ? '+' : '') + v.toFixed(1) + '%' : '미반응'
+
         const ttLag = document.getElementById('ttLag')
-        if (ttLag) ttLag.textContent = 'lag ' + d.lag + '개월'
+        if (ttLag) ttLag.textContent = lag !== null ? `lag ${lag}개월` : '—'
+
         const ttVol = document.getElementById('ttVol')
-        if (ttVol) ttVol.textContent = (d.vol >= 0 ? '+' : '') + d.vol + '%'
+        if (ttVol) ttVol.textContent = (ws.final_volume_change_pct >= 0 ? '+' : '') + ws.final_volume_change_pct.toFixed(1) + '%'
+
         const ttFinal = document.getElementById('ttFinal')
-        if (ttFinal) ttFinal.textContent = (d.change >= 0 ? '+' : '') + d.change.toFixed(1) + '%'
+        if (ttFinal) ttFinal.textContent = (ws.final_price_change_pct >= 0 ? '+' : '') + ws.final_price_change_pct.toFixed(1) + '%'
 
         const tt = document.getElementById('tooltip')
         if (tt) {
