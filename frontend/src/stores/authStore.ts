@@ -9,6 +9,14 @@ export const useAuthStore = defineStore('auth', () => {
 
   const isLoggedIn = computed(() => !!accessToken.value)
 
+  const isAdmin = computed(() => {
+    if (!accessToken.value) return false
+    try {
+      const payload = JSON.parse(atob(accessToken.value.split('.')[1] ?? ''))
+      return payload.role === 'ROLE_ADMIN'
+    } catch { return false }
+  })
+
   function _persist(at: string, rt: string, nick: string) {
     accessToken.value  = at
     refreshToken.value = rt
@@ -46,5 +54,5 @@ export const useAuthStore = defineStore('auth', () => {
     _clear()
   }
 
-  return { accessToken, nickname, isLoggedIn, login, register, logout }
+  return { accessToken, nickname, isLoggedIn, isAdmin, login, register, logout }
 })

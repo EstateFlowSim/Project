@@ -44,6 +44,9 @@ export const getQna     = (id: number) =>
 export const createQna  = (title: string, content: string) =>
   http.post('/qnas', { title, content })
 
+export const updateQna  = (id: number, title: string, content: string) =>
+  http.put(`/qnas/${id}`, { title, content })
+
 export const deleteQna  = (id: number) =>
   http.delete(`/qnas/${id}`)
 
@@ -55,3 +58,6 @@ export const createComment = (qnaId: number, content: string) =>
 
 export const deleteComment = (qnaId: number, commentId: number) =>
   http.delete(`/qnas/${qnaId}/comments/${commentId}`)
+
+export const updateAnswered = (id: number, answered: boolean) =>
+  http.patch(`/qnas/${id}/answered`, { answered })

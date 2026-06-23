@@ -2,6 +2,7 @@
 import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/authStore'
+import { checkEmail } from '@/api/authApi'
 import { parseApiError } from '@/api/errorUtils'
 
 const router    = useRouter()
@@ -22,12 +23,32 @@ const fieldErrors = reactive({
   nickname:  '',
   birthDate: '',
 })
-const apiError = ref('')
-const loading  = ref(false)
+const apiError     = ref('')
+const loading      = ref(false)
+const emailChecking = ref(false)
+
+function clearDuplicateError() {
+  if (fieldErrors.email === '이미 사용 중인 이메일입니다.') fieldErrors.email = ''
+}
+
+async function validateEmailDuplicate() {
+  if (!form.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) return
+  emailChecking.value = true
+  fieldErrors.email = ''
+  try {
+    const exists = await checkEmail(form.email)
+    if (exists) fieldErrors.email = '이미 사용 중인 이메일입니다.'
+  } catch {
+    // 네트워크 오류 시 서버에서 검증
+  } finally {
+    emailChecking.value = false
+  }
+}
 
 function validate(): boolean {
   let ok = true
 
+  if (fieldErrors.email === '이미 사용 중인 이메일입니다.') return false
   fieldErrors.email     = ''
   fieldErrors.password  = ''
   fieldErrors.pwConfirm = ''
@@ -68,8 +89,8 @@ function validate(): boolean {
   } else if (form.password.length < 8) {
     fieldErrors.password = '비밀번호는 8자 이상이어야 합니다.'
     ok = false
-  } else if (form.password.length > 100) {
-    fieldErrors.password = '비밀번호는 100자 이하여야 합니다.'
+  } else if (form.password.length > 20) {
+    fieldErrors.password = '비밀번호는 20자 이하여야 합니다.'
     ok = false
   }
 
@@ -112,7 +133,10 @@ async function submit() {
         <div class="rv-field">
           <label class="rv-label">이메일</label>
           <input v-model="form.email" type="email" :class="['rv-input', { err: fieldErrors.email }]"
-                 placeholder="이메일 주소" />
+                 placeholder="이메일 주소"
+                 @blur="validateEmailDuplicate"
+                 @input="clearDuplicateError" />
+          <span v-if="emailChecking" class="rv-checking">확인 중...</span>
           <span v-if="fieldErrors.email" class="rv-ferr">{{ fieldErrors.email }}</span>
         </div>
 
@@ -130,9 +154,9 @@ async function submit() {
         </div>
 
         <div class="rv-field">
-          <label class="rv-label">비밀번호 <span class="rv-hint">8~100자</span></label>
+          <label class="rv-label">비밀번호 <span class="rv-hint">8~20자</span></label>
           <input v-model="form.password" type="password" :class="['rv-input', { err: fieldErrors.password }]"
-                 placeholder="8자 이상" />
+                 placeholder="8~20자" maxlength="20" />
           <span v-if="fieldErrors.password" class="rv-ferr">{{ fieldErrors.password }}</span>
         </div>
 
@@ -180,4 +204,5 @@ async function submit() {
 .rv-link { text-align: center; font-size: 13px; color: #94a3b8; margin-top: 24px; }
 .rv-link a { color: #3b82f6; text-decoration: none; font-weight: 500; }
 .rv-link a:hover { text-decoration: underline; }
+.rv-checking { font-size: 12px; color: #94a3b8; }
 </style>
