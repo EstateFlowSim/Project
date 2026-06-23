@@ -12,16 +12,16 @@ function errorMessage(error: unknown): string {
 }
 
 export const useReportStore = defineStore('report', () => {
-  const report = ref<ReportDocument | null>(null)
+  const report  = ref<ReportDocument | null>(null)
   const loading = ref(false)
-  const error = ref<string | null>(null)
+  const error   = ref<string | null>(null)
 
   async function generate(request: CreateReportRequest): Promise<void> {
     loading.value = true
-    error.value = null
+    error.value   = null
     try {
       const response = await createReport(request)
-      report.value = response.detail
+      report.value   = response.detail
     } catch (e) {
       error.value = errorMessage(e)
     } finally {
@@ -32,12 +32,12 @@ export const useReportStore = defineStore('report', () => {
   async function download(): Promise<void> {
     if (!report.value) return
     loading.value = true
-    error.value = null
+    error.value   = null
     try {
       const { blob, filename } = await downloadReportPdf(report.value.report_id)
-      const url = URL.createObjectURL(blob)
+      const url  = URL.createObjectURL(blob)
       const link = document.createElement('a')
-      link.href = url
+      link.href     = url
       link.download = filename ?? `estateflow-report-${report.value.report_id}.pdf`
       link.click()
       URL.revokeObjectURL(url)
@@ -50,7 +50,7 @@ export const useReportStore = defineStore('report', () => {
 
   function reset(): void {
     report.value = null
-    error.value = null
+    error.value  = null
   }
 
   return { report, loading, error, generate, download, reset }

@@ -43,9 +43,33 @@ export async function getMember(userId: number, accessToken: string): Promise<Me
   return res.data
 }
 
+const authHttp = axios.create({
+  baseURL: '/api',
+  headers: { 'Content-Type': 'application/json' },
+  timeout: 10_000,
+})
+authHttp.interceptors.request.use(cfg => {
+  const token = localStorage.getItem('access_token')
+  if (token) cfg.headers.Authorization = `Bearer ${token}`
+  return cfg
+})
+
+export async function checkEmail(email: string): Promise<boolean> {
+  const res = await http.get<boolean>('/members/check-email', { params: { email } })
+  return res.data
+}
+
+export async function updateMember(userId: number, nickname: string): Promise<void> {
+  await authHttp.put(`/members/${userId}`, { nickname })
+}
+
+export async function withdrawMember(userId: number): Promise<void> {
+  await authHttp.delete(`/members/${userId}`)
+}
+
 export function parseUserId(token: string): number | null {
   try {
-    const payload = JSON.parse(atob(token.split('.')[1]))
+    const payload = JSON.parse(atob(token.split('.')[1] ?? ''))
     return Number(payload.sub)
   } catch {
     return null

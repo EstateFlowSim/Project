@@ -10,6 +10,7 @@ import QnaDetailView    from '@/views/QnaDetailView.vue'
 import QnaWriteView     from '@/views/QnaWriteView.vue'
 import LoginView        from '@/views/LoginView.vue'
 import RegisterView     from '@/views/RegisterView.vue'
+import MyPageView       from '@/views/MyPageView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -24,6 +25,7 @@ const router = createRouter({
     { path: '/qna/:id',       name: 'qnaDetail',     component: QnaDetailView },
     { path: '/login',         name: 'login',         component: LoginView },
     { path: '/register',      name: 'register',      component: RegisterView },
+    { path: '/mypage',        name: 'mypage',        component: MyPageView,  meta: { requiresAuth: true } },
   ],
 })
 

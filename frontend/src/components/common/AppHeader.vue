@@ -28,7 +28,7 @@ async function handleLogout() {
 
       <div class="ah-auth">
         <template v-if="authStore.isLoggedIn">
-          <span class="ah-nick">{{ authStore.nickname }}</span>
+          <router-link to="/mypage" class="ah-nick">{{ authStore.nickname }}</router-link>
           <button class="ah-btn-out" @click="handleLogout">로그아웃</button>
         </template>
         <template v-else>
@@ -50,7 +50,8 @@ async function handleLogout() {
 .ah-a { padding: 6px 12px; border-radius: 6px; text-decoration: none; color: #64748b; font-size: 14px; font-weight: 500; transition: all .15s; }
 .ah-a:hover, .ah-a.router-link-active { background: #f1f5f9; color: #1e293b; }
 .ah-auth { display: flex; align-items: center; gap: 8px; }
-.ah-nick { font-size: 14px; color: #475569; font-weight: 500; }
+.ah-nick { font-size: 14px; color: #475569; font-weight: 500; text-decoration: none; transition: color .15s; }
+.ah-nick:hover { color: #1e293b; }
 .ah-btn-login { padding: 7px 14px; border-radius: 6px; text-decoration: none; color: #475569; font-size: 14px; font-weight: 500; border: 1px solid #e2e8f0; transition: all .15s; }
 .ah-btn-login:hover { border-color: #cbd5e1; color: #1e293b; }
 .ah-btn-reg { padding: 7px 14px; border-radius: 6px; text-decoration: none; background: #1e293b; color: #fff; font-size: 14px; font-weight: 500; transition: background .15s; }
