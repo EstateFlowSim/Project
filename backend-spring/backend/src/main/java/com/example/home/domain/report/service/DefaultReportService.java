@@ -35,7 +35,8 @@ public class DefaultReportService implements ReportService {
                 request.windowMonths(),
                 AnalysisCacheKey.regionSignature(request.regionCodes()));
         if (cache == null) {
-            throw new BusinessException(ErrorCode.NOT_FOUND, "해당 조건의 분석 결과가 없습니다. 먼저 분석을 실행해 주세요.");
+            throw new BusinessException(ErrorCode.NOT_FOUND,
+                    "해당 조건의 분석 결과가 없습니다. 먼저 분석을 실행해 주세요.");
         }
 
         JsonNode analysisResult = parseAnalysisResult(cache.getResultJson());
@@ -63,7 +64,8 @@ public class DefaultReportService implements ReportService {
         try {
             return objectMapper.readTree(resultJson);
         } catch (JsonProcessingException e) {
-            throw new BusinessException(ErrorCode.SERVER_ERROR, "캐시된 분석 결과를 읽지 못했습니다.");
+            throw new BusinessException(ErrorCode.REPORT_ANALYSIS_RESULT_INVALID,
+                    "분석 캐시 결과 JSON을 읽을 수 없습니다.");
         }
     }
 }

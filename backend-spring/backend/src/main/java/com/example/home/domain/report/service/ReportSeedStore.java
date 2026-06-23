@@ -9,16 +9,21 @@ import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.util.UUID;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 @Component
 public class ReportSeedStore {
 
     private final ObjectMapper objectMapper;
-    private final Path reportDirectory = Path.of("seed", "reports");
+    private final Path reportDirectory;
 
-    public ReportSeedStore(ObjectMapper objectMapper) {
+    public ReportSeedStore(
+            ObjectMapper objectMapper,
+            @Value("${report.storage.directory}") String reportDirectory) {
         this.objectMapper = objectMapper;
+        this.reportDirectory = Path.of(reportDirectory);
     }
 
     public void save(ReportDocument document) {
@@ -48,10 +53,18 @@ public class ReportSeedStore {
     }
 
     private Path filePath(String reportId) {
-        if (!reportId.matches("[a-f0-9-]{36}")) {
+        if (!isCanonicalUuid(reportId)) {
             throw new BusinessException(ErrorCode.INVALID_INPUT, "유효하지 않은 리포트 ID입니다.");
         }
         return reportDirectory.resolve("report-" + reportId + ".json");
+    }
+
+    private boolean isCanonicalUuid(String value) {
+        try {
+            return UUID.fromString(value).toString().equals(value);
+        } catch (IllegalArgumentException e) {
+            return false;
+        }
     }
 
     private void moveAtomically(Path source, Path target) throws IOException {
