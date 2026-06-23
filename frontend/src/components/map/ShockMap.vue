@@ -95,9 +95,21 @@ function setProgress(pct: number, txt: string) {
 // 서울 25구 전체 로드 — regions가 없어도 지도 구조는 유지
 async function loadGeoJSON(): Promise<Record<string, unknown>> {
   setProgress(20, '서울 행정구역 로딩...')
-  const geo = await (await fetch('/geojson/seoul.json')).json() as Record<string, unknown>
+  const geojsons = await Promise.all(
+    ['/geojson/seoul.json', '/geojson/gyeonggi.json'].map(async url =>
+      await (await fetch(url)).json() as Record<string, unknown>,
+    ),
+  )
+  const seoul = geojsons[0]!
+  const gyeonggi = geojsons[1]!
   setProgress(90, '지도 레이어 생성...')
-  return geo
+  return {
+    type: 'FeatureCollection',
+    features: [
+      ...(seoul.features as Array<Record<string, unknown>>),
+      ...(gyeonggi.features as Array<Record<string, unknown>>),
+    ],
+  }
 }
 
 // 라벨 visibility

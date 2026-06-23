@@ -166,7 +166,6 @@ def _create_event_detail_tables(con: duckdb.DuckDBPyConnection) -> None:
             affected_asset VARCHAR,
             announced_date DATE,
             effective_date DATE,
-            source_url VARCHAR,
             FOREIGN KEY(event_id) REFERENCES events(id)
         )
         """
