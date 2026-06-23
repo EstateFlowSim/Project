@@ -61,7 +61,6 @@ def _row_to_policy_detail(row: tuple | None) -> Dict[str, Any] | None:
         affected_asset,
         announced_date,
         effective_date,
-        source_url,
     ) = row
     return {
         "policy_category": policy_category,
@@ -70,7 +69,6 @@ def _row_to_policy_detail(row: tuple | None) -> Dict[str, Any] | None:
         "affected_asset": affected_asset,
         "announced_date": _date_to_json(announced_date),
         "effective_date": _date_to_json(effective_date),
-        "source_url": source_url,
     }
 
 
@@ -102,8 +100,7 @@ def _event_detail(con: Any, event_id: int, event_type: str) -> Dict[str, Any] | 
             target_region,
             affected_asset,
             announced_date,
-            effective_date,
-            source_url
+            effective_date
         FROM policy_event_details
         WHERE event_id = ?
         """,

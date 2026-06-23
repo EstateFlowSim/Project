@@ -2,6 +2,7 @@
 .venv/
 raw/
 processed/
+backend-fastAPI/seed/
 __pycache__/
 .metadata/
 *.lock
@@ -9,6 +10,11 @@ __pycache__/
 *.log
 *.ini
 *.zip
+
+*.json
+!frontend/public/geojson/seoul.json
+!frontend/public/geojson/gyeonggi.json
+
 *.snap
 
 # FastAPI 데이터 파일만 제한 (전역 *.json 제거)
