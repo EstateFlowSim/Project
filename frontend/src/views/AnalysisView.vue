@@ -12,11 +12,14 @@ import MetricsPanel from '@/components/analysis/MetricsPanel.vue'
 import TimelineSlider from '@/components/analysis/TimelineSlider.vue'
 import ReportPreview from '@/components/report/ReportPreview.vue'
 import '@/assets/styles/analysis.css'
+import '@/assets/styles/tour.css'
+import { useAnalysisTour } from '@/composables/useAnalysisTour'
 
 const router      = useRouter()
 const store       = useAnalysisStore()
 const reportStore = useReportStore()
 const authStore   = useAuthStore()
+const { startTour, startTourIfFirst } = useAnalysisTour()
 
 // ── 타임라인 월 목록 (window_months 기반 동적 생성) ─────────────────────────
 const MONTHS = computed(() => {
@@ -126,15 +129,17 @@ function cancelConfirm() {
 // ── 초기 로드 ──────────────────────────────────────────────────────────────
 onMounted(async () => {
   if (ctrlBarRef.value) {
-    ctrlBarRO = new ResizeObserver(([entry]) => {
-      panelTop.value = 60 + Math.round(entry.contentRect.height) + 16
+    ctrlBarRO = new ResizeObserver((entries) => {
+      const entry = entries[0]
+      if (entry) panelTop.value = 60 + Math.round(entry.contentRect.height) + 16
     })
     ctrlBarRO.observe(ctrlBarRef.value)
   }
   const timelineEl = (timelineRef.value as any)?.$el as HTMLElement | undefined
   if (timelineEl) {
-    timelineRO = new ResizeObserver(([entry]) => {
-      panelBottom.value = Math.round(entry.contentRect.height) + 16
+    timelineRO = new ResizeObserver((entries) => {
+      const entry = entries[0]
+      if (entry) panelBottom.value = Math.round(entry.contentRect.height) + 16
     })
     timelineRO.observe(timelineEl)
   }
@@ -142,6 +147,8 @@ onMounted(async () => {
   await store.fetchEvents()
   const first = events.value[0]
   if (first) store.selectEvent(first.id)
+
+  setTimeout(startTourIfFirst, 800)
 })
 
 onUnmounted(() => {
@@ -193,6 +200,7 @@ onUnmounted(() => {
           <div class="tog-dot"></div>지역 라벨
         </div>
         <div class="live"><div class="ldot"></div>LIVE</div>
+        <button class="tour-btn" title="도움말" @click="startTour">?</button>
       </div>
     </div>
 
