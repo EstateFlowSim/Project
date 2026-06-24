@@ -32,8 +32,9 @@ public class DefaultAnalysisService implements AnalysisService {
 
         AnalysisCache cached = cacheRepository.findByKey(request.eventId(), request.windowMonths(), signature);
         if (cached != null) {
-            log.debug("캐시 히트: eventId={}, windowMonths={}, signature={}", request.eventId(), request.windowMonths(), signature);
-            return parseJson(cached.getResultJson());
+            log.debug("캐시 히트: eventId={}, windowMonths={}, signature={}",
+                    request.eventId(), request.windowMonths(), signature);
+            return parseJson(cached.getResultJson()).withAnalysisCacheId(cached.getCacheId());
         }
 
         EventWindowResponse result = aiServerClient.requestEventWindowAnalysis(request);
@@ -46,7 +47,16 @@ public class DefaultAnalysisService implements AnalysisService {
                 .build();
         cacheRepository.save(cache);
 
-        return result;
+        return result.withAnalysisCacheId(cache.getCacheId());
+    }
+
+    @Override
+    public EventWindowResponse getCachedResult(Long cacheId) {
+        AnalysisCache cached = cacheRepository.findById(cacheId);
+        if (cached == null) {
+            throw new BusinessException(ErrorCode.NOT_FOUND, "해당 분석 캐시 결과를 찾을 수 없습니다.");
+        }
+        return parseJson(cached.getResultJson()).withAnalysisCacheId(cached.getCacheId());
     }
 
     @Override

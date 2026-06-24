@@ -8,6 +8,7 @@ import java.util.Map;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public record EventWindowResponse(
         String status,
+        @JsonProperty("analysis_cache_id")      Long analysisCacheId,
         Map<String, Object> event,
         Map<String, Object> analysis,
         @JsonProperty("data_range")       Map<String, Object> dataRange,
@@ -17,4 +18,19 @@ public record EventWindowResponse(
         @JsonProperty("result_count")           Integer resultCount,
         @JsonProperty("complete_window_count")  Integer completeWindowCount,
         @JsonProperty("requested_region_count") Integer requestedRegionCount
-) {}
+) {
+    public EventWindowResponse withAnalysisCacheId(Long analysisCacheId) {
+        return new EventWindowResponse(
+                status,
+                analysisCacheId,
+                event,
+                analysis,
+                dataRange,
+                summary,
+                rankings,
+                regions,
+                resultCount,
+                completeWindowCount,
+                requestedRegionCount);
+    }
+}

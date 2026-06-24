@@ -8,5 +8,7 @@ public interface AnalysisService {
 
     EventWindowResponse analyze(EventWindowRequest request);
 
+    EventWindowResponse getCachedResult(Long cacheId);
+
     Map<String, Object> getEvents();
 }
