@@ -132,7 +132,7 @@ const sz = computed(() => SIZES[size.value])
 <style scoped>
 .rp-szctrl {
   display: flex;
-  justify-content: flex-end;
+  justify-content: flex-start;
   gap: 4px;
   flex-shrink: 0;
   pointer-events: auto;
@@ -141,9 +141,9 @@ const sz = computed(() => SIZES[size.value])
   width: 20px;
   height: 20px;
   border-radius: 4px;
-  border: 1px solid rgba(255,255,255,.14);
-  background: rgba(255,255,255,.04);
-  color: rgba(255,255,255,.45);
+  border: 1px solid var(--border2);
+  background: var(--glass);
+  color: var(--w3);
   font-size: 13px;
   line-height: 1;
   cursor: pointer;
@@ -153,11 +153,12 @@ const sz = computed(() => SIZES[size.value])
   transition: all .12s;
   font-family: 'Inter', sans-serif;
   padding: 0;
+  backdrop-filter: blur(8px);
 }
 .rp-sz:hover:not(:disabled) {
-  border-color: rgba(255,255,255,.3);
-  color: rgba(255,255,255,.85);
-  background: rgba(255,255,255,.08);
+  border-color: var(--border2);
+  color: var(--w1);
+  background: var(--panel);
 }
 .rp-sz:disabled {
   opacity: 0.25;

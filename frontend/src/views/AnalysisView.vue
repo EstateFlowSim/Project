@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, watch, onMounted } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import type { MapEvent } from '@/types/analysis'
 import { useAnalysisStore } from '@/stores/analysisStore'
@@ -24,6 +24,14 @@ const MONTHS = computed(() => {
   const post = Array.from({ length: store.windowMonths }, (_, i) => `T+${i + 1}`)
   return [...pre, 'T+0', ...post]
 })
+
+// ── ctrl-bar 높이 추적 → MetricsPanel top 동적 계산 ───────────────────────
+const ctrlBarRef  = ref<HTMLElement | null>(null)
+const timelineRef = ref<HTMLElement | null>(null)
+const panelTop    = ref(128) // AppHeader(60) + ctrl-bar 기본 높이(52) + margin(16)
+const panelBottom = ref(116) // timeline 기본 높이 + margin(16)
+let   ctrlBarRO:  ResizeObserver | null = null
+let   timelineRO: ResizeObserver | null = null
 
 // ── UI 상태 ────────────────────────────────────────────────────────────────
 const selectedEvIdx = ref(0)
@@ -117,9 +125,28 @@ function cancelConfirm() {
 
 // ── 초기 로드 ──────────────────────────────────────────────────────────────
 onMounted(async () => {
+  if (ctrlBarRef.value) {
+    ctrlBarRO = new ResizeObserver(([entry]) => {
+      panelTop.value = 60 + Math.round(entry.contentRect.height) + 16
+    })
+    ctrlBarRO.observe(ctrlBarRef.value)
+  }
+  const timelineEl = (timelineRef.value as any)?.$el as HTMLElement | undefined
+  if (timelineEl) {
+    timelineRO = new ResizeObserver(([entry]) => {
+      panelBottom.value = Math.round(entry.contentRect.height) + 16
+    })
+    timelineRO.observe(timelineEl)
+  }
+
   await store.fetchEvents()
   const first = events.value[0]
   if (first) store.selectEvent(first.id)
+})
+
+onUnmounted(() => {
+  ctrlBarRO?.disconnect()
+  timelineRO?.disconnect()
 })
 </script>
 
@@ -146,7 +173,7 @@ onMounted(async () => {
     <AppHeader />
 
     <!-- ── Analysis Control Bar ───────────────────────────────────── -->
-    <div class="ctrl-bar">
+    <div ref="ctrlBarRef" class="ctrl-bar">
       <EventSelector
         :events="events"
         :model-value="selectedEvIdx"
@@ -172,6 +199,7 @@ onMounted(async () => {
     <MetricsPanel
       :regions="store.analysisResult?.regions ?? []"
       :current-relative-month="curMonth - 3"
+      :style="{ top: panelTop + 'px', bottom: panelBottom + 'px' }"
     />
     <ReportPreview
       v-if="reportStore.report"
@@ -180,7 +208,8 @@ onMounted(async () => {
       @download="reportStore.download"
     />
 
-      <TimelineSlider
+    <TimelineSlider
+      ref="timelineRef"
       :months="MONTHS"
       :model-value="curMonth"
       :playing="playing"
