@@ -7,6 +7,11 @@ export const useAuthStore = defineStore('auth', () => {
   const refreshToken = ref<string | null>(localStorage.getItem('refresh_token'))
   const nickname     = ref<string | null>(localStorage.getItem('nickname'))
 
+  // http.ts의 토큰 갱신 성공 이벤트를 받아 ref 동기화
+  window.addEventListener('auth:refreshed', (e: Event) => {
+    accessToken.value = (e as CustomEvent<string>).detail
+  })
+
   const isLoggedIn = computed(() => !!accessToken.value)
 
   const isAdmin = computed(() => {

@@ -1,11 +1,5 @@
-import axios from 'axios'
+import { http } from './http'
 import type { BaseResponse } from '@/types/analysis'
-
-const http = axios.create({
-  baseURL: '/api',
-  headers: { 'Content-Type': 'application/json' },
-  timeout: 35_000,
-})
 
 export interface AptDeal {
   regionCode: string

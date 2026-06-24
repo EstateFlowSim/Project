@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { watch, onMounted, onUnmounted } from 'vue'
+import { watch, onMounted, onUnmounted, nextTick } from 'vue'
 import mapboxgl from 'mapbox-gl'
 import 'mapbox-gl/dist/mapbox-gl.css'
 import type { RegionResult } from '@/types/analysis'
@@ -10,8 +10,14 @@ const props = defineProps<{
   regions: RegionResult[]
   currentRelativeMonth: number   // -3 ~ +windowMonths
   showLabels: boolean
+  paused: boolean
 }>()
 
+const emit = defineEmits<{
+  'region-click': [{ dong_code: string; name: string }]
+}>()
+
+const INIT = { center: [127.02, 37.52] as [number, number], zoom: 10.2, pitch: 55, bearing: -10 }
 const LERP = 0.07
 let map: mapboxgl.Map | null = null
 let baseGeoJSON: Record<string, unknown> | null = null
@@ -126,6 +132,15 @@ watch(() => props.regions, () => {
   if (mapLoaded) pushMapData()
 })
 
+// 모달 등 외부에서 paused=true → LERP 즉시 스냅
+watch(() => props.paused, paused => {
+  if (!paused) return
+  Object.keys(regionMap).forEach(name => {
+    dispVals[name] = getTarget(name)
+  })
+  if (mapLoaded) pushMapData()
+})
+
 onMounted(() => {
   buildRegionMap()
 
@@ -140,6 +155,15 @@ onMounted(() => {
   })
 
   map.addControl(new mapboxgl.NavigationControl({ visualizePitch: true }), 'bottom-right')
+
+  // compass 버튼: bearing만 리셋 → 초기 위치·줌·pitch·bearing 전체 복원으로 교체
+  nextTick(() => {
+    const compass = map!.getContainer().querySelector('.mapboxgl-ctrl-compass')
+    compass?.addEventListener('click', e => {
+      e.stopImmediatePropagation()
+      map!.flyTo({ ...INIT, duration: 900, essential: true })
+    }, true)
+  })
 
   map.on('load', async () => {
     try {
@@ -244,6 +268,15 @@ onMounted(() => {
         map!.getCanvas().style.cursor = ''
         const tt = document.getElementById('tooltip')
         if (tt) tt.style.display = 'none'
+      })
+
+      map!.on('click', 'districts-3d', e => {
+        const feature = e.features?.[0] as unknown as { properties: Record<string, unknown> } | undefined
+        if (!feature) return
+        const name   = feature.properties.name as string
+        const region = regionMap[name]
+        if (!region) return
+        emit('region-click', { dong_code: region.dong_code, name })
       })
 
       setProgress(100, '완료')

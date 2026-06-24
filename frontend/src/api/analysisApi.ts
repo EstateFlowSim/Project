@@ -1,4 +1,4 @@
-import axios from 'axios'
+import { http } from './http'
 import type {
   BaseResponse,
   EventsListResponse,
@@ -6,14 +6,8 @@ import type {
   EventWindowResponse,
 } from '@/types/analysis'
 
-const http = axios.create({
-  baseURL: '/api',
-  headers: { 'Content-Type': 'application/json' },
-  timeout: 30_000,
-})
-
 export async function getEvents(): Promise<BaseResponse<EventsListResponse>> {
-  const res = await http.get<BaseResponse<EventsListResponse>>('/analysis/events')
+  const res = await http.get<BaseResponse<EventsListResponse>>('/analysis/events', { timeout: 30_000 })
   return res.data
 }
 
@@ -23,6 +17,7 @@ export async function postEventWindow(
   const res = await http.post<BaseResponse<EventWindowResponse>>(
     '/analysis/event-window',
     req,
+    { timeout: 30_000 },
   )
   return res.data
 }
