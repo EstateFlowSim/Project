@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router'
 import type { MapEvent } from '@/types/analysis'
 import { useAnalysisStore } from '@/stores/analysisStore'
 import { useReportStore } from '@/stores/reportStore'
+import { useAuthStore } from '@/stores/authStore'
 import ShockMap from '@/components/map/ShockMap.vue'
 import EventSelector from '@/components/analysis/EventSelector.vue'
 import MetricsPanel from '@/components/analysis/MetricsPanel.vue'
@@ -15,6 +16,12 @@ import '@/assets/styles/analysis.css'
 const router      = useRouter()
 const store       = useAnalysisStore()
 const reportStore = useReportStore()
+const authStore   = useAuthStore()
+
+async function handleLogout() {
+  await authStore.logout()
+  router.push('/')
+}
 
 // ── 타임라인 월 목록 (window_months 기반 동적 생성) ─────────────────────────
 const MONTHS = computed(() => {
@@ -69,12 +76,48 @@ async function handleReportAction() {
     await reportStore.download()
     return
   }
+  if (!authStore.isLoggedIn) {
+    router.push({ name: 'login', query: { redirect: '/analysis' } })
+    return
+  }
   if (store.selectedEventId === null || !store.analysisResult) return
   await reportStore.generate({
     event_id:      store.selectedEventId,
     window_months: store.windowMonths,
     region_codes:  store.regionCodes.length > 0 ? store.regionCodes : undefined,
   })
+}
+
+// ── 분석 지역 클릭 → 거래 검색 확인 모달 ─────────────────────────────────
+type ConfirmState = { dong_code: string; name: string; yearMonth: string; displayYM: string }
+const confirmState = ref<ConfirmState | null>(null)
+
+function addMonths(ym: string, delta: number): string {
+  const year  = parseInt(ym.slice(0, 4))
+  const month = parseInt(ym.slice(4, 6))
+  const d     = new Date(year, month - 1 + delta)
+  return `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}`
+}
+
+function onRegionClick({ dong_code, name }: { dong_code: string; name: string }) {
+  const ev = store.events[selectedEvIdx.value]
+  if (!ev) return
+  const yearMonth = addMonths(ev.event_ym, curMonth.value - 3)
+  const y = yearMonth.slice(0, 4)
+  const m = parseInt(yearMonth.slice(4, 6))
+  playing.value      = false
+  confirmState.value = { dong_code, name, yearMonth, displayYM: `${y}년 ${m}월` }
+}
+
+function confirmSearch() {
+  if (!confirmState.value) return
+  const { dong_code, yearMonth } = confirmState.value
+  confirmState.value = null
+  window.open(`/search?regionCode=${dong_code}&yearMonth=${yearMonth}`, '_blank')
+}
+
+function cancelConfirm() {
+  confirmState.value = null
 }
 
 // ── 초기 로드 ──────────────────────────────────────────────────────────────
@@ -100,22 +143,48 @@ onMounted(async () => {
     :regions="store.analysisResult?.regions ?? []"
     :current-relative-month="curMonth - 3"
     :show-labels="showLabels"
+    :paused="confirmState !== null"
+    @region-click="onRegionClick"
   />
 
   <div class="ui">
-    <div class="hdr">
-      <div class="logo-sq">EF</div>
-      <div>
-        <div class="logo-nm">EstateFlow</div>
-        <div class="logo-sb">부동산 정책 충격 전파 분석</div>
+    <!-- ── Nav Header ─────────────────────────────────────────────── -->
+    <header class="hdr">
+      <div class="hdr-inner">
+        <router-link to="/" class="logo-link">
+          <div class="logo-sq">EF</div>
+          <span class="logo-nm">EstateFlow</span>
+        </router-link>
+
+        <nav class="hdr-nav">
+          <router-link to="/analysis" class="hdr-nav-a">분석</router-link>
+          <router-link to="/search"   class="hdr-nav-a">거래 검색</router-link>
+          <router-link to="/notices"  class="hdr-nav-a">공지사항</router-link>
+          <router-link to="/qna"      class="hdr-nav-a">Q&amp;A</router-link>
+        </nav>
+
+        <div class="hdr-auth">
+          <template v-if="authStore.isLoggedIn">
+            <router-link to="/mypage" class="hdr-auth-a">{{ authStore.nickname }}</router-link>
+            <button class="hdr-auth-btn" @click="handleLogout">로그아웃</button>
+          </template>
+          <template v-else>
+            <router-link to="/login"    class="hdr-auth-a">로그인</router-link>
+            <router-link to="/register" class="hdr-auth-btn-reg">회원가입</router-link>
+          </template>
+        </div>
       </div>
-      <div class="hdiv"></div>
+    </header>
+
+    <!-- ── Analysis Control Bar ───────────────────────────────────── -->
+    <div class="ctrl-bar">
+      <div></div><!-- grid left spacer -->
       <EventSelector
         :events="events"
         :model-value="selectedEvIdx"
         @update:model-value="onEventSelect"
       />
-      <div class="hdr-r">
+      <div class="ctrl-bar-r">
         <WindowSelector
           :model-value="store.windowMonths"
           @update:model-value="onWindowMonthsChange($event)"
@@ -126,12 +195,11 @@ onMounted(async () => {
           :disabled="reportStore.loading || !store.analysisResult || store.loading"
           @click="handleReportAction"
         >
-          {{ reportStore.loading ? '처리 중...' : reportStore.report ? 'PDF 다운로드' : 'AI 리포트 생성' }}
+          {{ reportStore.loading ? '처리 중...' : reportStore.report ? 'PDF 다운로드' : authStore.isLoggedIn ? 'AI 리포트 생성' : 'AI 리포트 (로그인 필요)' }}
         </button>
         <div class="ltog" :class="{ on: showLabels }" @click="showLabels = !showLabels">
           <div class="tog-dot"></div>지역 라벨
         </div>
-        <button class="search-btn" @click="router.push('/search')">거래 검색</button>
         <div class="live"><div class="ldot"></div>LIVE</div>
       </div>
     </div>
@@ -157,4 +225,109 @@ onMounted(async () => {
     />
   </div>
   <div v-if="reportStore.error" class="report-error">{{ reportStore.error }}</div>
+
+  <!-- ── 거래 검색 확인 모달 ──────────────────────────────────────────── -->
+  <Transition name="av-modal">
+    <div v-if="confirmState" class="av-modal-backdrop" @click.self="cancelConfirm">
+      <div class="av-modal-card">
+        <div class="av-modal-label">아파트 매매 거래 검색</div>
+        <div class="av-modal-region">{{ confirmState.name }}</div>
+        <div class="av-modal-ym">{{ confirmState.displayYM }}</div>
+        <div class="av-modal-desc">해당 조건으로 거래 내역을 검색합니다.</div>
+        <div class="av-modal-actions">
+          <button class="av-modal-cancel" @click="cancelConfirm">취소</button>
+          <button class="av-modal-confirm" @click="confirmSearch">검색하기</button>
+        </div>
+      </div>
+    </div>
+  </Transition>
 </template>
+
+<style scoped>
+.av-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(3px);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.av-modal-card {
+  background: #0f172a;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  padding: 32px 36px;
+  min-width: 300px;
+  box-shadow: 0 32px 80px rgba(0, 0, 0, 0.6);
+}
+.av-modal-label {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.35);
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin-bottom: 18px;
+}
+.av-modal-region {
+  font-size: 26px;
+  font-weight: 700;
+  color: #fff;
+  line-height: 1.2;
+}
+.av-modal-ym {
+  font-size: 16px;
+  color: rgba(255, 255, 255, 0.55);
+  margin-top: 4px;
+}
+.av-modal-desc {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.3);
+  margin-top: 10px;
+  margin-bottom: 28px;
+}
+.av-modal-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+.av-modal-cancel {
+  background: none;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: rgba(255, 255, 255, 0.45);
+  padding: 9px 18px;
+  border-radius: 8px;
+  font-size: 13px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: border-color 0.12s, color 0.12s;
+}
+.av-modal-cancel:hover {
+  border-color: rgba(255, 255, 255, 0.35);
+  color: rgba(255, 255, 255, 0.75);
+}
+.av-modal-confirm {
+  background: #3b82f6;
+  border: none;
+  color: #fff;
+  padding: 9px 22px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.12s;
+}
+.av-modal-confirm:hover { background: #2563eb; }
+
+/* 등장/퇴장 애니메이션 */
+.av-modal-enter-active,
+.av-modal-leave-active { transition: opacity 0.15s ease; }
+.av-modal-enter-from,
+.av-modal-leave-to { opacity: 0; }
+.av-modal-enter-active .av-modal-card,
+.av-modal-leave-active .av-modal-card { transition: transform 0.15s ease; }
+.av-modal-enter-from .av-modal-card,
+.av-modal-leave-to .av-modal-card { transform: scale(0.96) translateY(-6px); }
+</style>

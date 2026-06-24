@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import type { MapEvent } from '@/types/analysis'
 
 const props = defineProps<{
@@ -57,6 +57,11 @@ function togglePlay() {
     }, 800)
   }
 }
+
+// 부모가 playing=false로 바꿀 때 ptimer 정리
+watch(() => props.playing, val => {
+  if (!val && ptimer) { clearInterval(ptimer); ptimer = null }
+})
 
 function startThumbDrag() { sliderDrag = true }
 
