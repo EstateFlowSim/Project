@@ -17,9 +17,38 @@ const currentRound = computed(() =>
   rounds.value.find(round => round.relative_month === selectedRelativeMonth.value) ?? null,
 )
 
+const regionNames: Record<string, string> = {
+  '11110': '서울 종로구', '11140': '서울 중구', '11170': '서울 용산구', '11200': '서울 성동구',
+  '11215': '서울 광진구', '11230': '서울 동대문구', '11260': '서울 중랑구', '11290': '서울 성북구',
+  '11305': '서울 강북구', '11320': '서울 도봉구', '11350': '서울 노원구', '11380': '서울 은평구',
+  '11410': '서울 서대문구', '11440': '서울 마포구', '11470': '서울 양천구', '11500': '서울 강서구',
+  '11530': '서울 구로구', '11545': '서울 금천구', '11560': '서울 영등포구', '11590': '서울 동작구',
+  '11620': '서울 관악구', '11650': '서울 서초구', '11680': '서울 강남구', '11710': '서울 송파구',
+  '11740': '서울 강동구', '41111': '경기 수원시 장안구', '41113': '경기 수원시 권선구',
+  '41115': '경기 수원시 팔달구', '41117': '경기 수원시 영통구', '41131': '경기 성남시 수정구',
+  '41133': '경기 성남시 중원구', '41135': '경기 성남시 분당구', '41171': '경기 안양시 만안구',
+  '41173': '경기 안양시 동안구', '41192': '경기 부천시 원미구', '41194': '경기 부천시 소사구',
+  '41196': '경기 부천시 오정구', '41271': '경기 안산시 상록구', '41273': '경기 안산시 단원구',
+  '41281': '경기 고양시 덕양구', '41285': '경기 고양시 일산동구', '41287': '경기 고양시 일산서구',
+  '41290': '경기 과천시', '41410': '경기 군포시', '41430': '경기 의왕시',
+  '41461': '경기 용인시 처인구', '41463': '경기 용인시 기흥구', '41465': '경기 용인시 수지구',
+  '41570': '경기 김포시',
+}
+
 function signed(value: number | null | undefined): string {
   if (value === null || value === undefined) return '-'
   return `${value >= 0 ? '+' : ''}${value.toFixed(2)}%`
+}
+
+function roundDisplayLabel(relativeMonth: number): string {
+  if (relativeMonth === 0) return '정책 시행월'
+  return relativeMonth < 0
+    ? `시행 ${Math.abs(relativeMonth)}개월 전`
+    : `시행 ${relativeMonth}개월 후`
+}
+
+function regionDisplayName(regionCode: string, regionName?: string): string {
+  return regionName?.trim() || regionNames[regionCode] || `지역 코드 ${regionCode}`
 }
 
 async function loadScenario(): Promise<void> {
@@ -60,7 +89,7 @@ onMounted(loadScenario)
             <h1>리포트 기반 페르소나 시뮬레이션</h1>
             <p class="scenario-sub">
               분석 결과를 바탕으로 반응성이 높은 지역을 추리고, 실수요자·투자자·갈아타기 수요층이
-              라운드별로 어떻게 움직이는지 확인합니다.
+              정책 시행 시점별로 어떻게 움직이는지 확인합니다.
             </p>
           </div>
 
@@ -77,7 +106,7 @@ onMounted(loadScenario)
               <strong>{{ scenario.final_summary.selected_region_count }}</strong>
             </div>
             <div class="summary-card">
-              <span>라운드 수</span>
+              <span>분석 시점 수</span>
               <strong>{{ scenario.final_summary.round_count }}</strong>
             </div>
             <div class="summary-card">
@@ -95,7 +124,7 @@ onMounted(loadScenario)
             <div class="region-grid">
               <article v-for="region in scenario.selected_regions" :key="region.region_code" class="region-card">
                 <div class="region-head">
-                  <strong>{{ region.region_name }}</strong>
+                  <strong>{{ regionDisplayName(region.region_code, region.region_name) }}</strong>
                   <span>{{ region.region_code }}</span>
                 </div>
 
@@ -114,13 +143,13 @@ onMounted(loadScenario)
 
           <section class="scenario-section">
             <div class="round-header">
-              <h2>라운드 선택</h2>
+              <h2>정책 시행 시점 선택</h2>
               <button
                 class="explain-btn"
                 :disabled="selectedRelativeMonth === null || scenarioStore.explanationLoading"
                 @click="handleExplainRound"
               >
-                {{ scenarioStore.explanationLoading ? '설명 생성 중...' : '이 라운드 AI 설명 보기' }}
+                {{ scenarioStore.explanationLoading ? '설명 생성 중...' : '이 시점 AI 설명 보기' }}
               </button>
             </div>
 
@@ -132,14 +161,14 @@ onMounted(loadScenario)
                 :class="{ active: selectedRelativeMonth === round.relative_month }"
                 @click="selectedRelativeMonth = round.relative_month"
               >
-                {{ round.label }}
+                {{ roundDisplayLabel(round.relative_month) }}
               </button>
             </div>
 
             <div v-if="currentRound" class="round-panel">
               <div class="round-overview">
                 <div>
-                  <span class="round-label">{{ currentRound.label }}</span>
+                  <span class="round-label">{{ roundDisplayLabel(currentRound.relative_month) }}</span>
                   <strong>{{ currentRound.market_mood }}</strong>
                 </div>
                 <p>{{ currentRound.narrative }}</p>
@@ -149,7 +178,7 @@ onMounted(loadScenario)
                 <article v-for="region in currentRound.regions" :key="region.region_code" class="round-region-card">
                   <div class="round-region-head">
                     <div>
-                      <strong>{{ region.region_name }}</strong>
+                      <strong>{{ regionDisplayName(region.region_code, region.region_name) }}</strong>
                       <span>{{ region.region_code }}</span>
                     </div>
                     <em>{{ region.dominant_stance }}</em>
@@ -186,7 +215,7 @@ onMounted(loadScenario)
             <div v-if="scenarioStore.explanationError" class="scenario-state error">{{ scenarioStore.explanationError }}</div>
 
             <section v-if="scenarioStore.roundExplanation" class="scenario-explanation">
-              <h3>AI 라운드 설명</h3>
+              <h3>AI 시점별 설명</h3>
               <p class="explanation-summary">{{ scenarioStore.roundExplanation.summary }}</p>
 
               <div class="explanation-region-list">
@@ -197,7 +226,7 @@ onMounted(loadScenario)
                 >
                   <div class="round-region-head">
                     <div>
-                      <strong>{{ region.region_name }}</strong>
+                      <strong>{{ regionDisplayName(region.region_code, region.region_name) }}</strong>
                       <span>{{ region.region_code }}</span>
                     </div>
                     <em>{{ region.dominant_stance }}</em>
@@ -228,8 +257,15 @@ onMounted(loadScenario)
 </template>
 
 <style scoped>
-.scenario-page { min-height: 100vh; display: flex; flex-direction: column; background: #f8fafc; }
-.scenario-main { flex: 1; padding: 40px 24px; }
+.scenario-page {
+  height: 100vh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  background: #f8fafc;
+  color: #334155;
+}
+.scenario-main { flex: 1 0 auto; padding: 40px 24px 64px; }
 .scenario-inner { max-width: 1100px; margin: 0 auto; display: flex; flex-direction: column; gap: 24px; }
 .scenario-hero,
 .scenario-section,
@@ -256,6 +292,8 @@ onMounted(loadScenario)
 .region-head,
 .round-region-head,
 .persona-head { display: flex; justify-content: space-between; gap: 12px; align-items: center; }
+.region-head strong,
+.round-region-head strong { color: #0f172a; }
 .region-head span,
 .round-region-head span,
 .persona-head span { font-size: 12px; color: #94a3b8; }

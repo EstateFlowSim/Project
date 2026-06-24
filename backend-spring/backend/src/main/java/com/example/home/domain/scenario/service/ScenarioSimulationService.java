@@ -126,7 +126,7 @@ public class ScenarioSimulationService {
         }
         for (Map<String, Object> region : regions) {
             String code = stringValue(region.get("dong_code"));
-            if (!code.isBlank()) {
+            if (RegionNameResolver.isScenarioSupportedRegionCode(code)) {
                 indexed.put(code, region);
             }
         }
@@ -456,7 +456,12 @@ public class ScenarioSimulationService {
     }
 
     private String monthLabel(int relativeMonth) {
-        return relativeMonth >= 0 ? "T+" + relativeMonth : "T" + relativeMonth;
+        if (relativeMonth == 0) {
+            return "정책 시행월";
+        }
+        return relativeMonth < 0
+                ? "시행 " + Math.abs(relativeMonth) + "개월 전"
+                : "시행 " + relativeMonth + "개월 후";
     }
 
     private Map<String, Object> mapValue(Object value) {
