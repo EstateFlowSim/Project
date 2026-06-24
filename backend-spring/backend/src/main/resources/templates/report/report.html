@@ -3,35 +3,74 @@
 <head>
   <meta charset="UTF-8" />
   <style>
-    @page { size: A4; margin: 17mm 15mm 18mm; }
+    @page { size: A4; margin: 0; }
     * { box-sizing: border-box; }
     body { color: #172033; font-family: 'Noto Sans KR', sans-serif; font-size: 10pt; line-height: 1.65; }
     h1, h2, h3, p { margin: 0; }
+    .cover { background: #101827; color: #f8fafc; height: 297mm; padding: 38mm 20mm 28mm; page-break-after: always; }
+    .cover-brand { color: #3ab8f2; font-size: 15pt; font-weight: bold; letter-spacing: .16em; }
+    .cover-subtitle { color: #a7b7cf; font-size: 13pt; letter-spacing: .12em; margin-top: 10mm; }
+    .cover-title { border-left: 3mm solid #3ab8f2; font-size: 29pt; line-height: 1.42; margin-top: 20mm; padding-left: 14mm; word-break: keep-all; }
+    .cover-meta { color: #a7b7cf; font-size: 10.5pt; line-height: 2.25; margin: 23mm 0 32mm 17mm; }
+    .cover-stats { border-collapse: collapse; table-layout: fixed; width: 100%; }
+    .cover-stats td { border: 1px solid #3b475c; height: 35mm; padding: 7mm 5mm; text-align: center; vertical-align: middle; width: 33.33%; }
+    .cover-stat-label { color: #a7b7cf; font-size: 9.5pt; }
+    .cover-stat-value { color: #3ab8f2; font-size: 21pt; font-weight: bold; line-height: 1.4; margin-top: 4mm; word-break: keep-all; }
+    .cover-stat-value.rose { color: #ff4a6e; }
+    .cover-stat-value.blue { color: #619eff; }
+    .cover-stat-value.region { color: #f8fafc; font-size: 15pt; }
+    .report-content { padding: 17mm 15mm 18mm; }
     .header { border-bottom: 2px solid #1f5eff; padding-bottom: 12px; margin-bottom: 18px; }
     .eyebrow { color: #1f5eff; font-size: 8.5pt; font-weight: bold; letter-spacing: .08em; }
     h1 { font-size: 22pt; line-height: 1.35; margin-top: 4px; }
     .created-at { color: #637083; font-size: 8.5pt; margin-top: 5px; }
-    .kpis { border-collapse: separate; border-spacing: 8px 0; margin: 0 -8px 18px; width: calc(100% + 16px); }
+    .kpis { border-collapse: separate; border-spacing: 8px 0; margin: 0 -8px 18px; width: calc(100% + 16px); break-inside: avoid; page-break-inside: avoid; }
+    .kpis tr { break-inside: avoid; page-break-inside: avoid; }
     .kpis td { background: #f3f6fb; border-radius: 6px; padding: 11px 12px; vertical-align: top; width: 25%; }
     .kpi-label { color: #637083; font-size: 8pt; }
     .kpi-value { color: #172033; font-size: 17pt; font-weight: bold; line-height: 1.3; margin-top: 2px; }
     .positive { color: #1677d2; }
     .negative { color: #d64545; }
     .section { margin-top: 20px; }
-    h2 { border-left: 4px solid #1f5eff; font-size: 14pt; line-height: 1.35; padding-left: 8px; margin-bottom: 9px; }
+    h2 { border-left: 4px solid #1f5eff; font-size: 14pt; line-height: 1.35; padding-left: 8px; margin-bottom: 9px; break-after: avoid-page; page-break-after: avoid; }
     h3 { color: #263b63; font-size: 11pt; margin-bottom: 4px; }
-    .summary { background: #f7f9fd; border: 1px solid #dfe7f5; border-radius: 6px; padding: 13px 15px; }
-    .content-block { border-bottom: 1px solid #e7ecf3; padding: 0 0 12px; margin: 0 0 12px; }
-    .regional { break-inside: avoid; border: 1px solid #dfe7f5; border-radius: 6px; margin-bottom: 12px; padding: 13px 15px; }
+    .summary { background: #f7f9fd; border: 1px solid #dfe7f5; border-radius: 6px; padding: 13px 15px; break-inside: avoid; page-break-inside: avoid; }
+    .content-block { border-bottom: 1px solid #e7ecf3; padding: 0 0 12px; margin: 0 0 12px; break-inside: avoid; page-break-inside: avoid; }
+    .regional { break-inside: avoid; page-break-inside: avoid; border: 1px solid #dfe7f5; border-radius: 6px; margin-bottom: 12px; padding: 13px 15px; }
     .reason { color: #637083; font-size: 9pt; margin-bottom: 8px; }
     .label { color: #263b63; font-weight: bold; }
     ul { margin: 6px 0 0; padding-left: 18px; }
     li { margin-bottom: 3px; }
-    .cautions { background: #fff8e8; border-left: 4px solid #e7a924; padding: 10px 14px; }
+    .cautions { background: #fff8e8; border-left: 4px solid #e7a924; padding: 10px 14px; break-inside: avoid; page-break-inside: avoid; }
+    .content-block p, .regional p, .summary, .cautions { orphans: 3; widows: 3; }
     .footer { color: #8a95a5; font-size: 8pt; margin-top: 22px; text-align: right; }
   </style>
 </head>
 <body>
+  <section class="cover">
+    <p class="cover-brand">ESTATEFLOW</p>
+    <p class="cover-subtitle">ANALYSIS REPORT</p>
+    <h1 class="cover-title" th:text="${report.title}">부동산 시장 반응 분석 리포트</h1>
+    <div class="cover-meta">
+      <p th:text="|생성 시각 : ${report.createdAt}|">생성 시각 : 2026-06-25</p>
+      <p th:text="|분석 기간 : ${report.windowMonths}개월|">분석 기간 : 6개월</p>
+      <p th:text="|분석 대상 : ${report.regionCount}개 지역|">분석 대상 : 48개 지역</p>
+    </div>
+    <table class="cover-stats" role="presentation">
+      <tr>
+        <td><p class="cover-stat-label">분석 지역 수</p><p class="cover-stat-value" th:text="|${report.regionCount}개 지역|">48개 지역</p></td>
+        <td><p class="cover-stat-label">가격 상승 지역</p><p class="cover-stat-value rose" th:text="|${report.risingRegionCount}개 지역|">39개 지역</p></td>
+        <td><p class="cover-stat-label">가격 하락 지역</p><p class="cover-stat-value blue" th:text="|${report.fallingRegionCount}개 지역|">9개 지역</p></td>
+      </tr>
+      <tr>
+        <td><p class="cover-stat-label">평균 가격 변화율</p><p class="cover-stat-value rose" th:text="${report.averagePriceChange}">+7.05%</p></td>
+        <td><p class="cover-stat-label">평균 거래량 변화율</p><p class="cover-stat-value rose" th:text="${report.averageVolumeChange}">+160.83%</p></td>
+        <td><p class="cover-stat-label">최고 상승 지역</p><p class="cover-stat-value region" th:text="${report.topRiseRegion}">서울 용산구</p><p class="cover-stat-value region" th:text="|(${report.topRisePercent})|">(+26.04%)</p></td>
+      </tr>
+    </table>
+  </section>
+
+  <main class="report-content">
   <header class="header">
     <p class="eyebrow">ESTATEFLOW · ANALYSIS REPORT</p>
     <h1 th:text="${report.title}">부동산 분석 리포트</h1>
@@ -74,5 +113,6 @@
     <div class="cautions"><ul><li th:each="caution : ${report.cautions}" th:text="${caution}">주의사항</li></ul></div>
   </section>
   <p class="footer">EstateFlow Report</p>
+  </main>
 </body>
 </html>
