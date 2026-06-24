@@ -1,4 +1,4 @@
-import { http } from './http'
+import { http, publicHttp } from './http'
 import type { PageResponse } from '@/api/noticeApi'
 
 export interface Qna {
@@ -23,10 +23,10 @@ export interface QnaComment {
 }
 
 export const getQnas    = (page = 1, size = 10) =>
-  http.get<PageResponse<Qna>>('/qnas', { params: { page, size } }).then(r => r.data)
+  publicHttp.get<PageResponse<Qna>>('/qnas', { params: { page, size } }).then(r => r.data)
 
 export const getQna     = (id: number) =>
-  http.get<Qna>(`/qnas/${id}`).then(r => r.data)
+  publicHttp.get<Qna>(`/qnas/${id}`).then(r => r.data)
 
 export const createQna  = (title: string, content: string) =>
   http.post('/qnas', { title, content })
@@ -38,7 +38,7 @@ export const deleteQna  = (id: number) =>
   http.delete(`/qnas/${id}`)
 
 export const getComments   = (qnaId: number) =>
-  http.get<QnaComment[]>(`/qnas/${qnaId}/comments`).then(r => r.data)
+  publicHttp.get<QnaComment[]>(`/qnas/${qnaId}/comments`).then(r => r.data)
 
 export const createComment = (qnaId: number, content: string) =>
   http.post(`/qnas/${qnaId}/comments`, { content })

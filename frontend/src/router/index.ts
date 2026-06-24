@@ -33,12 +33,11 @@ const router = createRouter({
   ],
 })
 
-router.beforeEach((to, _from, next) => {
+router.beforeEach(to => {
   if (to.meta.requiresAuth) {
     const auth = useAuthStore()
-    if (!auth.isLoggedIn) return next({ name: 'login', query: { redirect: to.fullPath } })
+    if (!auth.isLoggedIn) return { name: 'login', query: { redirect: to.fullPath } }
   }
-  next()
 })
 
 export default router

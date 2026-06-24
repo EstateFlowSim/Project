@@ -15,6 +15,13 @@ export const http = axios.create({
   timeout: 15_000,
 })
 
+// 인증 불필요 공개 엔드포인트 전용 — 토큰 없이 호출하므로 refresh 루프 없음
+export const publicHttp = axios.create({
+  baseURL: '/api',
+  headers: { 'Content-Type': 'application/json' },
+  timeout: 15_000,
+})
+
 http.interceptors.request.use(cfg => {
   const token = localStorage.getItem('access_token')
   if (token) cfg.headers.Authorization = `Bearer ${token}`
