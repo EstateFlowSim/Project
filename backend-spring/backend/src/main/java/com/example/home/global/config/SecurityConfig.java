@@ -57,7 +57,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/members/check-email").permitAll()
                         .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html").permitAll()
-                        .requestMatchers("/api/analysis/**").permitAll()
+                        .requestMatchers("/api/analysis/**", "/api/reports/**", "/api/scenarios/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/notices/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/qnas/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/deals/**").permitAll()

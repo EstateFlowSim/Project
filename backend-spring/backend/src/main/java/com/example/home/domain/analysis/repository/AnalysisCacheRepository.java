@@ -7,6 +7,8 @@ import org.apache.ibatis.annotations.Param;
 @Mapper
 public interface AnalysisCacheRepository {
 
+    AnalysisCache findById(@Param("cacheId") Long cacheId);
+
     AnalysisCache findByKey(
             @Param("eventId") Long eventId,
             @Param("windowMonths") int windowMonths,

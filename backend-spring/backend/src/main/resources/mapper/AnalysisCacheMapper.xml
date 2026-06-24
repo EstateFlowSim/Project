@@ -13,6 +13,12 @@
         <result property="createdAt"       column="created_at"/>
     </resultMap>
 
+    <select id="findById" resultMap="analysisCacheResultMap">
+        SELECT cache_id, event_id, window_months, region_signature, result_json, created_at
+        FROM analysis_cache
+        WHERE cache_id = #{cacheId}
+    </select>
+
     <select id="findByKey" resultMap="analysisCacheResultMap">
         SELECT cache_id, event_id, window_months, region_signature, result_json, created_at
         FROM analysis_cache
