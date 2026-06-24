@@ -1,6 +1,7 @@
 package com.example.home.domain.report.service;
 
 import java.util.Map;
+import java.util.Set;
 
 /**
  * 분석 대상 LAWD_CD를 리포트에 표시할 행정구역명으로 변환한다.
@@ -30,7 +31,9 @@ public final class RegionNameResolver {
             Map.entry("41194", "경기 부천시 소사구"), Map.entry("41196", "경기 부천시 오정구"),
             Map.entry("41271", "경기 안산시 상록구"), Map.entry("41273", "경기 안산시 단원구"),
             Map.entry("41281", "경기 고양시 덕양구"), Map.entry("41285", "경기 고양시 일산동구"),
-            Map.entry("41287", "경기 고양시 일산서구"), Map.entry("41461", "경기 용인시 처인구"),
+            Map.entry("41287", "경기 고양시 일산서구"), Map.entry("41290", "경기 과천시"),
+            Map.entry("41410", "경기 군포시"), Map.entry("41430", "경기 의왕시"),
+            Map.entry("41461", "경기 용인시 처인구"),
             Map.entry("41463", "경기 용인시 기흥구"), Map.entry("41465", "경기 용인시 수지구"),
             Map.entry("41570", "경기 김포시"), Map.entry("41591", "경기 화성시 동부출장소"),
             Map.entry("41593", "경기 화성시 동탄출장소"), Map.entry("41595", "경기 화성시 여타지역")
@@ -45,6 +48,10 @@ public final class RegionNameResolver {
 
     public static boolean containsRegionCode(String content) {
         return REGION_NAMES.keySet().stream().anyMatch(content::contains);
+    }
+
+    public static boolean isScenarioSupportedRegionCode(String regionCode) {
+        return REGION_NAMES.containsKey(regionCode) && !Set.of("41273", "41591", "41593", "41595").contains(regionCode);
     }
 
     public static Map<String, String> regionNames() {

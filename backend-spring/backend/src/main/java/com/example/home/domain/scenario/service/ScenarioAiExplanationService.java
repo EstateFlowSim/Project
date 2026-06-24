@@ -98,20 +98,22 @@ public class ScenarioAiExplanationService {
         payload.put("scenario_id", document.scenarioId());
         payload.put("source", document.source());
         payload.put("selected_regions", document.selectedRegions());
-        payload.put("round", round);
+        payload.put("policy_timing", round);
 
         return """
-                아래 JSON은 특정 시나리오의 한 라운드 데이터입니다.
+                아래 JSON은 특정 시나리오의 정책 시행 시점 데이터입니다.
                 반드시 한국어로 설명하세요.
+                사용자에게 보여지는 문장에서는 "라운드", "round", "T+N", "T-N"을 절대 사용하지 마세요.
+                label을 활용해 "정책 시행 n개월 전/후" 또는 "정책 시행월"로 표현하세요.
                 반드시 출력 스키마를 따라 JSON만 반환하세요.
 
                 <output_schema>
                 %s
                 </output_schema>
 
-                <scenario_round>
+                <policy_timing>
                 %s
-                </scenario_round>
+                </policy_timing>
                 """.formatted(
                 promptLoader.outputSchema(),
                 objectMapper.writeValueAsString(payload));
