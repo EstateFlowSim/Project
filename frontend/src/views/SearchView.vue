@@ -1,43 +1,36 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
+import { useRoute } from 'vue-router'
 import AppHeader from '@/components/common/AppHeader.vue'
+import AppFooter from '@/components/common/AppFooter.vue'
 import { getAptDeals, type AptDeal } from '@/api/dealsApi'
+import { LAWD_CD_TO_NAME } from '@/constants/regionCodes'
 
-const REGIONS: Record<string, string> = {
-  '11110': '종로구',  '11140': '중구',       '11170': '용산구',
-  '11200': '성동구',  '11215': '광진구',     '11230': '동대문구',
-  '11260': '중랑구',  '11290': '성북구',     '11305': '강북구',
-  '11320': '도봉구',  '11350': '노원구',     '11380': '은평구',
-  '11410': '서대문구','11440': '마포구',     '11470': '양천구',
-  '11500': '강서구',  '11530': '구로구',     '11545': '금천구',
-  '11560': '영등포구','11590': '동작구',     '11620': '관악구',
-  '11650': '서초구',  '11680': '강남구',     '11710': '송파구',
-  '11740': '강동구',
-}
-
-const YEARS  = Array.from({ length: 15 }, (_, i) => 2024 - i)
+const YEARS  = Array.from({ length: 15 }, (_, i) => 2026 - i)
 const MONTHS = Array.from({ length: 12 }, (_, i) => i + 1)
+const PAGE_SIZE = 15
 
+const route      = useRoute()
 const regionCode = ref('11680')
-const year       = ref(2024)
+const year       = ref(2026)
 const month      = ref(new Date().getMonth() + 1)
 const deals      = ref<AptDeal[]>([])
 const loading    = ref(false)
 const error      = ref<string | null>(null)
-const searched   = ref(false)
+const page       = ref(1)
 
 const yearMonth = computed(() =>
   `${year.value}${String(month.value).padStart(2, '0')}`,
 )
 
 async function search() {
-  loading.value  = true
-  error.value    = null
-  deals.value    = []
-  searched.value = true
+  loading.value = true
+  error.value   = null
+  deals.value   = []
+  page.value    = 1
   try {
-    const res    = await getAptDeals(regionCode.value, yearMonth.value)
-    deals.value  = res.detail ?? []
+    const res   = await getAptDeals(regionCode.value, yearMonth.value)
+    deals.value = res.detail ?? []
   } catch (e: any) {
     error.value = e?.response?.data?.message ?? '조회 중 오류가 발생했습니다.'
   } finally {
@@ -48,12 +41,18 @@ async function search() {
 function fmtAmount(v: number) { return v.toLocaleString() + '만원' }
 function fmtDate(d: AptDeal)  { return `${d.dealYear}.${String(d.dealMonth).padStart(2, '0')}.${String(d.dealDay).padStart(2, '0')}` }
 
+const count   = computed(() => deals.value.length)
+const avgAmt  = computed(() => count.value ? Math.round(deals.value.reduce((s, d) => s + d.dealAmount, 0) / count.value) : 0)
+const maxAmt  = computed(() => count.value ? Math.max(...deals.value.map(d => d.dealAmount)) : 0)
+const minAmt  = computed(() => count.value ? Math.min(...deals.value.map(d => d.dealAmount)) : 0)
+
 const sortKey  = ref<keyof AptDeal>('dealAmount')
 const sortDesc = ref(true)
 
 function toggleSort(key: keyof AptDeal) {
   if (sortKey.value === key) sortDesc.value = !sortDesc.value
   else { sortKey.value = key; sortDesc.value = true }
+  page.value = 1
 }
 
 const sorted = computed(() => {
@@ -64,6 +63,35 @@ const sorted = computed(() => {
     return sortDesc.value ? (va < vb ? 1 : -1) : (va > vb ? 1 : -1)
   })
   return arr
+})
+
+const totalPages = computed(() => Math.max(1, Math.ceil(sorted.value.length / PAGE_SIZE)))
+
+const paddedRows = computed<(AptDeal | null)[]>(() => {
+  const start = (page.value - 1) * PAGE_SIZE
+  const rows: (AptDeal | null)[] = sorted.value.slice(start, start + PAGE_SIZE)
+  while (rows.length < PAGE_SIZE) rows.push(null)
+  return rows
+})
+
+const pageSlots = computed(() => {
+  const cur = page.value
+  return [cur - 2, cur - 1, cur, cur + 1, cur + 2]
+})
+
+function goTo(p: number) {
+  page.value = Math.max(1, Math.min(totalPages.value, p))
+}
+
+onMounted(() => {
+  const rc = route.query.regionCode as string | undefined
+  const ym = route.query.yearMonth  as string | undefined
+  if (rc && ym && ym.length === 6) {
+    regionCode.value = rc
+    year.value  = parseInt(ym.slice(0, 4))
+    month.value = parseInt(ym.slice(4, 6))
+    search()
+  }
 })
 </script>
 
@@ -77,19 +105,14 @@ const sorted = computed(() => {
 
         <div class="sv-filter">
           <select v-model="regionCode" class="sv-sel">
-            <option v-for="(name, code) in REGIONS" :key="code" :value="code">
-              {{ name }}
-            </option>
+            <option v-for="(name, code) in LAWD_CD_TO_NAME" :key="code" :value="code">{{ name }}</option>
           </select>
-
           <select v-model="year" class="sv-sel">
             <option v-for="y in YEARS" :key="y" :value="y">{{ y }}년</option>
           </select>
-
           <select v-model="month" class="sv-sel">
             <option v-for="m in MONTHS" :key="m" :value="m">{{ m }}월</option>
           </select>
-
           <button class="sv-btn" :disabled="loading" @click="search">
             {{ loading ? '조회 중...' : '조회' }}
           </button>
@@ -97,31 +120,28 @@ const sorted = computed(() => {
 
         <p v-if="error" class="sv-err">{{ error }}</p>
 
-        <!-- 통계 요약 -->
-        <div v-if="deals.length > 0" class="sv-stats">
+        <!-- 통계 요약 (항상 표시) -->
+        <div class="sv-stats">
           <div class="sv-stat">
             <span class="sv-stat-label">조회 건수</span>
-            <strong class="sv-stat-value">{{ deals.length }}건</strong>
+            <strong class="sv-stat-value">{{ count }}건</strong>
           </div>
           <div class="sv-stat">
             <span class="sv-stat-label">평균 거래가</span>
-            <strong class="sv-stat-value">{{ fmtAmount(Math.round(deals.reduce((s,d) => s + d.dealAmount, 0) / deals.length)) }}</strong>
+            <strong class="sv-stat-value">{{ fmtAmount(avgAmt) }}</strong>
           </div>
           <div class="sv-stat">
             <span class="sv-stat-label">최고가</span>
-            <strong class="sv-stat-value sv-stat-high">{{ fmtAmount(Math.max(...deals.map(d => d.dealAmount))) }}</strong>
+            <strong class="sv-stat-value sv-stat-high">{{ fmtAmount(maxAmt) }}</strong>
           </div>
           <div class="sv-stat">
             <span class="sv-stat-label">최저가</span>
-            <strong class="sv-stat-value sv-stat-low">{{ fmtAmount(Math.min(...deals.map(d => d.dealAmount))) }}</strong>
+            <strong class="sv-stat-value sv-stat-low">{{ fmtAmount(minAmt) }}</strong>
           </div>
         </div>
 
-        <div v-if="loading" class="sv-skeleton-wrap">
-          <div class="sv-skeleton" v-for="i in 8" :key="i" />
-        </div>
-
-        <div v-else-if="deals.length > 0" class="sv-table-wrap">
+        <!-- 테이블 (항상 표시) -->
+        <div class="sv-table-wrap">
           <table class="sv-table">
             <thead>
               <tr>
@@ -135,33 +155,47 @@ const sorted = computed(() => {
               </tr>
             </thead>
             <tbody>
-              <tr v-for="(d, i) in sorted" :key="i">
-                <td>{{ d.aptName }}</td>
-                <td>{{ d.dong }}</td>
-                <td class="sv-amt">{{ fmtAmount(d.dealAmount) }}</td>
-                <td>{{ d.area }}</td>
-                <td>{{ d.floor }}</td>
-                <td>{{ fmtDate(d) }}</td>
-                <td>{{ d.buildYear }}</td>
+              <tr v-for="(d, i) in paddedRows" :key="i" :class="{ 'sv-row-empty': !d }">
+                <td>{{ d?.aptName ?? '' }}</td>
+                <td>{{ d?.dong ?? '' }}</td>
+                <td class="sv-amt">{{ d ? fmtAmount(d.dealAmount) : '' }}</td>
+                <td>{{ d?.area ?? '' }}</td>
+                <td>{{ d?.floor ?? '' }}</td>
+                <td>{{ d ? fmtDate(d) : '' }}</td>
+                <td>{{ d?.buildYear ?? '' }}</td>
               </tr>
             </tbody>
           </table>
+
+          <!-- 페이지네이션 (항상 표시) -->
+          <div class="sv-pager">
+            <div class="sv-pager-side">
+              <button class="sv-pg-btn" :disabled="page === 1" @click="goTo(1)">|&lt;</button>
+            </div>
+            <div class="sv-pager-nums">
+              <button
+                v-for="(n, i) in pageSlots" :key="i"
+                class="sv-pg-btn"
+                :class="{ 'sv-pg-active': n === page, 'sv-pg-ghost': n < 1 || n > totalPages }"
+                :disabled="n < 1 || n > totalPages"
+                @click="goTo(n)">{{ n >= 1 && n <= totalPages ? n : '' }}</button>
+            </div>
+            <div class="sv-pager-side">
+              <button class="sv-pg-btn" :disabled="page === totalPages" @click="goTo(totalPages)">&gt;|</button>
+            </div>
+          </div>
         </div>
 
-        <div v-else-if="searched && !loading" class="sv-empty">
-          <div class="sv-empty-icon">🔍</div>
-          <p>{{ REGIONS[regionCode] }} {{ year }}년 {{ month }}월</p>
-          <p class="sv-empty-sub">조회된 거래 내역이 없습니다.</p>
-        </div>
       </div>
     </main>
+    <AppFooter />
   </div>
 </template>
 
 <style scoped>
-.sv { min-height: 100vh; background: #f8fafc; }
+.sv { min-height: 100vh; display: flex; flex-direction: column; background: #f8fafc; }
 
-.sv-main { padding: 40px 24px; }
+.sv-main { flex: 1; padding: 40px 24px; }
 .sv-inner { max-width: 1100px; margin: 0 auto; }
 .sv-title { font-size: 22px; font-weight: 700; color: #1e293b; margin-bottom: 24px; }
 
@@ -173,16 +207,6 @@ const sorted = computed(() => {
 .sv-btn:hover:not(:disabled) { background: #334155; }
 
 .sv-err { color: #ef4444; font-size: 13px; margin-bottom: 12px; }
-.sv-result-info { font-size: 13px; color: #64748b; margin-bottom: 12px; }
-
-.sv-table-wrap { overflow-x: auto; background: #fff; border-radius: 10px; box-shadow: 0 1px 3px rgba(0,0,0,.06); }
-.sv-table { width: 100%; border-collapse: collapse; font-size: 14px; }
-.sv-table th { background: #f8fafc; padding: 12px 16px; text-align: left; color: #64748b; font-weight: 600; font-size: 13px; border-bottom: 1px solid #e2e8f0; cursor: pointer; user-select: none; white-space: nowrap; }
-.sv-table th:hover { color: #1e293b; }
-.sv-table td { padding: 14px 16px; border-bottom: 1px solid #f1f5f9; color: #334155; }
-.sv-table tr:last-child td { border-bottom: none; }
-.sv-table tr:hover td { background: #f8fafc; }
-.sv-amt { color: #3b82f6; font-weight: 500; }
 
 /* 통계 */
 .sv-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 16px; }
@@ -192,13 +216,24 @@ const sorted = computed(() => {
 .sv-stat-high { color: #3b82f6; }
 .sv-stat-low { color: #64748b; }
 
-/* 스켈레톤 */
-.sv-skeleton-wrap { background: #fff; border-radius: 10px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,.06); }
-.sv-skeleton { height: 52px; background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%); background-size: 200% 100%; animation: shimmer 1.2s infinite; border-bottom: 1px solid #f8fafc; }
-@keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
+/* 테이블 */
+.sv-table-wrap { overflow-x: auto; background: #fff; border-radius: 10px; box-shadow: 0 1px 3px rgba(0,0,0,.06); }
+.sv-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.sv-table th { background: #f8fafc; padding: 12px 16px; text-align: left; color: #64748b; font-weight: 600; font-size: 13px; border-bottom: 1px solid #e2e8f0; cursor: pointer; user-select: none; white-space: nowrap; }
+.sv-table th:hover { color: #1e293b; }
+.sv-table td { padding: 0 16px; height: 49px; border-bottom: 1px solid #f1f5f9; color: #334155; vertical-align: middle; }
+.sv-table tr:last-child td { border-bottom: none; }
+.sv-table tr:hover:not(.sv-row-empty) td { background: #f8fafc; }
+.sv-row-empty td { border-bottom-color: transparent; pointer-events: none; }
+.sv-amt { color: #3b82f6; font-weight: 500; }
 
-.sv-empty { text-align: center; padding: 60px 0; background: #fff; border-radius: 10px; box-shadow: 0 1px 3px rgba(0,0,0,.06); }
-.sv-empty-icon { font-size: 36px; margin-bottom: 12px; }
-.sv-empty p { font-size: 14px; color: #475569; font-weight: 500; }
-.sv-empty-sub { font-size: 13px; color: #94a3b8; margin-top: 4px; font-weight: 400; }
+/* 페이지네이션 */
+.sv-pager { display: flex; justify-content: center; align-items: center; padding: 16px 0; }
+.sv-pager-side { width: 40px; display: flex; justify-content: center; flex-shrink: 0; }
+.sv-pager-nums { width: 180px; display: flex; justify-content: center; gap: 2px; flex-shrink: 0; }
+.sv-pg-btn { min-width: 32px; height: 32px; padding: 0 8px; border: none; background: none; color: #94a3b8; border-radius: 6px; font-size: 13px; cursor: pointer; transition: color .15s; }
+.sv-pg-btn:hover:not(:disabled) { color: #334155; }
+.sv-pg-btn:disabled { cursor: default; }
+.sv-pg-active { color: #1e293b !important; font-weight: 700; }
+.sv-pg-ghost { visibility: hidden; pointer-events: none; }
 </style>
