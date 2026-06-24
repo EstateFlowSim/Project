@@ -97,7 +97,7 @@ function fmtDate(s) { return s?.slice(0, 10) ?? '' }
 
 /* HERO */
 .h-hero { min-height: 480px; background: linear-gradient(135deg, #0f172a 0%, #1e3a5f 100%); display: flex; align-items: center; padding: 80px 24px; gap: 40px; }
-.h-hero-inner { max-width: 560px; margin: 0 auto 0 calc((100% - 1100px)/2 + 24px); }
+.h-hero-inner { max-width: 560px; margin: 0 auto 0 max(24px, calc((100% - 1100px) / 2 + 24px)); }
 .h-badge { display: inline-block; padding: 4px 12px; background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.2); border-radius: 20px; font-size: 12px; color: rgba(255,255,255,.8); margin-bottom: 20px; letter-spacing: .5px; }
 .h-headline { font-size: clamp(32px, 5vw, 48px); font-weight: 700; color: #fff; line-height: 1.25; margin-bottom: 16px; }
 .h-sub { font-size: 15px; color: rgba(255,255,255,.65); line-height: 1.7; margin-bottom: 32px; }
@@ -116,10 +116,9 @@ function fmtDate(s) { return s?.slice(0, 10) ?? '' }
 
 /* FEATURES */
 .h-feat { padding: 64px 24px; background: #fff; }
-.h-sect-inner { max-width: 1100px; margin: 0 auto; }
-.h-feat-card { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 28px; }
-.h-sect-inner { display: grid; gap: 24px; }
+.h-sect-inner { max-width: 1100px; margin: 0 auto; display: grid; gap: 24px; }
 .h-feat .h-sect-inner { grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
+.h-feat-card { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 28px; }
 .h-feat-icon { font-size: 28px; margin-bottom: 12px; }
 .h-feat-card h3 { font-size: 16px; font-weight: 600; color: #1e293b; margin-bottom: 8px; }
 .h-feat-card p { font-size: 14px; color: #64748b; line-height: 1.6; }
