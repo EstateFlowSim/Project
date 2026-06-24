@@ -1,18 +1,5 @@
-import axios from 'axios'
+import { http } from './http'
 import type { PageResponse } from '@/api/noticeApi'
-import { useAuthStore } from '@/stores/authStore'
-
-const http = axios.create({
-  baseURL: '/api',
-  headers: { 'Content-Type': 'application/json' },
-  timeout: 10_000,
-})
-
-http.interceptors.request.use(cfg => {
-  const token = localStorage.getItem('access_token')
-  if (token) cfg.headers.Authorization = `Bearer ${token}`
-  return cfg
-})
 
 export interface Qna {
   qnaId:     number
@@ -55,6 +42,9 @@ export const getComments   = (qnaId: number) =>
 
 export const createComment = (qnaId: number, content: string) =>
   http.post(`/qnas/${qnaId}/comments`, { content })
+
+export const updateComment = (qnaId: number, commentId: number, content: string) =>
+  http.put(`/qnas/${qnaId}/comments/${commentId}`, { content })
 
 export const deleteComment = (qnaId: number, commentId: number) =>
   http.delete(`/qnas/${qnaId}/comments/${commentId}`)

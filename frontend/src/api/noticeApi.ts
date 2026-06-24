@@ -1,10 +1,4 @@
-import axios from 'axios'
-
-const http = axios.create({
-  baseURL: '/api',
-  headers: { 'Content-Type': 'application/json' },
-  timeout: 10_000,
-})
+import { http } from './http'
 
 export interface Notice {
   noticeId:  number
@@ -31,3 +25,12 @@ export async function getNotice(id: number): Promise<Notice> {
   const res = await http.get<Notice>(`/notices/${id}`)
   return res.data
 }
+
+export const createNotice = (title: string, content: string) =>
+  http.post<Notice>('/notices', { title, content }).then(r => r.data)
+
+export const updateNotice = (id: number, title: string, content: string) =>
+  http.put<Notice>(`/notices/${id}`, { title, content }).then(r => r.data)
+
+export const deleteNotice = (id: number) =>
+  http.delete(`/notices/${id}`)
