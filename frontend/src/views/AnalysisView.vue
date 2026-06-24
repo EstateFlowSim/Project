@@ -5,11 +5,11 @@ import type { MapEvent } from '@/types/analysis'
 import { useAnalysisStore } from '@/stores/analysisStore'
 import { useReportStore } from '@/stores/reportStore'
 import { useAuthStore } from '@/stores/authStore'
+import AppHeader from '@/components/common/AppHeader.vue'
 import ShockMap from '@/components/map/ShockMap.vue'
 import EventSelector from '@/components/analysis/EventSelector.vue'
 import MetricsPanel from '@/components/analysis/MetricsPanel.vue'
 import TimelineSlider from '@/components/analysis/TimelineSlider.vue'
-import WindowSelector from '@/components/analysis/WindowSelector.vue'
 import ReportPreview from '@/components/report/ReportPreview.vue'
 import '@/assets/styles/analysis.css'
 
@@ -17,11 +17,6 @@ const router      = useRouter()
 const store       = useAnalysisStore()
 const reportStore = useReportStore()
 const authStore   = useAuthStore()
-
-async function handleLogout() {
-  await authStore.logout()
-  router.push('/')
-}
 
 // ── 타임라인 월 목록 (window_months 기반 동적 생성) ─────────────────────────
 const MONTHS = computed(() => {
@@ -148,48 +143,18 @@ onMounted(async () => {
   />
 
   <div class="ui">
-    <!-- ── Nav Header ─────────────────────────────────────────────── -->
-    <header class="hdr">
-      <div class="hdr-inner">
-        <router-link to="/" class="logo-link">
-          <div class="logo-sq">EF</div>
-          <span class="logo-nm">EstateFlow</span>
-        </router-link>
-
-        <nav class="hdr-nav">
-          <router-link to="/analysis" class="hdr-nav-a">분석</router-link>
-          <router-link to="/search"   class="hdr-nav-a">거래 검색</router-link>
-          <router-link to="/notices"  class="hdr-nav-a">공지사항</router-link>
-          <router-link to="/qna"      class="hdr-nav-a">Q&amp;A</router-link>
-        </nav>
-
-        <div class="hdr-auth">
-          <template v-if="authStore.isLoggedIn">
-            <router-link to="/mypage" class="hdr-auth-a">{{ authStore.nickname }}</router-link>
-            <button class="hdr-auth-btn" @click="handleLogout">로그아웃</button>
-          </template>
-          <template v-else>
-            <router-link to="/login"    class="hdr-auth-a">로그인</router-link>
-            <router-link to="/register" class="hdr-auth-btn-reg">회원가입</router-link>
-          </template>
-        </div>
-      </div>
-    </header>
+    <AppHeader />
 
     <!-- ── Analysis Control Bar ───────────────────────────────────── -->
     <div class="ctrl-bar">
-      <div></div><!-- grid left spacer -->
       <EventSelector
         :events="events"
         :model-value="selectedEvIdx"
+        :window-months="store.windowMonths"
         @update:model-value="onEventSelect"
+        @update:window-months="onWindowMonthsChange"
       />
       <div class="ctrl-bar-r">
-        <WindowSelector
-          :model-value="store.windowMonths"
-          @update:model-value="onWindowMonthsChange($event)"
-        />
-        <div class="hdiv-sm"></div>
         <button
           class="report-btn"
           :disabled="reportStore.loading || !store.analysisResult || store.loading"
@@ -255,16 +220,16 @@ onMounted(async () => {
   justify-content: center;
 }
 .av-modal-card {
-  background: #0f172a;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
   border-radius: 16px;
   padding: 32px 36px;
   min-width: 300px;
-  box-shadow: 0 32px 80px rgba(0, 0, 0, 0.6);
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.12);
 }
 .av-modal-label {
   font-size: 11px;
-  color: rgba(255, 255, 255, 0.35);
+  color: #94a3b8;
   font-weight: 600;
   letter-spacing: 0.1em;
   text-transform: uppercase;
@@ -273,17 +238,17 @@ onMounted(async () => {
 .av-modal-region {
   font-size: 26px;
   font-weight: 700;
-  color: #fff;
+  color: #1e293b;
   line-height: 1.2;
 }
 .av-modal-ym {
   font-size: 16px;
-  color: rgba(255, 255, 255, 0.55);
+  color: #64748b;
   margin-top: 4px;
 }
 .av-modal-desc {
   font-size: 13px;
-  color: rgba(255, 255, 255, 0.3);
+  color: #94a3b8;
   margin-top: 10px;
   margin-bottom: 28px;
 }
@@ -294,8 +259,8 @@ onMounted(async () => {
 }
 .av-modal-cancel {
   background: none;
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  color: rgba(255, 255, 255, 0.45);
+  border: 1px solid #e2e8f0;
+  color: #64748b;
   padding: 9px 18px;
   border-radius: 8px;
   font-size: 13px;
@@ -304,8 +269,8 @@ onMounted(async () => {
   transition: border-color 0.12s, color 0.12s;
 }
 .av-modal-cancel:hover {
-  border-color: rgba(255, 255, 255, 0.35);
-  color: rgba(255, 255, 255, 0.75);
+  border-color: #cbd5e1;
+  color: #1e293b;
 }
 .av-modal-confirm {
   background: #3b82f6;

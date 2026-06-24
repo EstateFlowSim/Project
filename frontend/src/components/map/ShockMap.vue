@@ -20,6 +20,8 @@ const emit = defineEmits<{
 const INIT = { center: [127.02, 37.52] as [number, number], zoom: 10.2, pitch: 55, bearing: -10 }
 const LERP = 0.07
 let map: mapboxgl.Map | null = null
+const NODATA = '#d4dae3'
+const LINE   = 'rgba(20,30,50,.12)'
 let baseGeoJSON: Record<string, unknown> | null = null
 let mapLoaded = false
 let animId: number | null = null
@@ -59,8 +61,8 @@ function pushMapData() {
         value:      v,
         height:     region ? Math.max(0, v) * 200 : 0,
         base:       0,
-        fillColor:  region ? col : '#112233',
-        labelColor: region && Math.abs(v) > 2 ? col : 'rgba(255,255,255,0.3)',
+        fillColor:  region ? col : NODATA,
+        labelColor: region && Math.abs(v) > 2 ? col : 'rgba(60,72,90,0.5)',
         active,
       },
     }
@@ -146,7 +148,7 @@ onMounted(() => {
 
   map = new mapboxgl.Map({
     container: 'map',
-    style: 'mapbox://styles/mapbox/dark-v11',
+    style: 'mapbox://styles/mapbox/light-v11',
     center: [127.02, 37.52],
     zoom: 10.2,
     pitch: 55,
@@ -175,8 +177,8 @@ onMounted(() => {
         properties: {
           ...(f.properties as object),
           value: 0, height: 0, base: 0,
-          fillColor:  '#112233',
-          labelColor: 'rgba(255,255,255,0.3)',
+          fillColor:  NODATA,
+          labelColor: 'rgba(60,72,90,0.5)',
           active: 0,
         },
       }))
@@ -202,7 +204,7 @@ onMounted(() => {
         id: 'districts-line',
         type: 'line',
         source: 'districts',
-        paint: { 'line-color': 'rgba(255,255,255,0.1)', 'line-width': 0.7 },
+        paint: { 'line-color': LINE, 'line-width': 0.7 },
       })
 
       map!.addLayer({
@@ -219,7 +221,7 @@ onMounted(() => {
         },
         paint: {
           'text-color':      ['get', 'labelColor'],
-          'text-halo-color': 'rgba(0,0,0,0.7)',
+          'text-halo-color': 'rgba(255,255,255,0.85)',
           'text-halo-width': 1.5,
         },
       })
