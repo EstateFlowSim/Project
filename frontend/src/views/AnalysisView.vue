@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import type { MapEvent } from '@/types/analysis'
 import { useAnalysisStore } from '@/stores/analysisStore'
 import { useReportStore } from '@/stores/reportStore'
@@ -11,11 +12,11 @@ import WindowSelector from '@/components/analysis/WindowSelector.vue'
 import ReportPreview from '@/components/report/ReportPreview.vue'
 import '@/assets/styles/analysis.css'
 
-const store = useAnalysisStore()
+const router      = useRouter()
+const store       = useAnalysisStore()
 const reportStore = useReportStore()
 
 // ── 타임라인 월 목록 (window_months 기반 동적 생성) ─────────────────────────
-// T-3, T-2, T-1, T+0, T+1 ... T+{windowMonths}
 const MONTHS = computed(() => {
   const pre  = ['T-3', 'T-2', 'T-1']
   const post = Array.from({ length: store.windowMonths }, (_, i) => `T+${i + 1}`)
@@ -28,7 +29,6 @@ const curMonth      = ref(3)    // MONTHS 인덱스, T+0 = 3 고정
 const playing       = ref(false)
 const showLabels    = ref(true)
 
-// windowMonths 변경 시 curMonth가 범위를 벗어나면 클램프
 watch(() => store.windowMonths, () => {
   const max = MONTHS.value.length - 1
   if (curMonth.value > max) curMonth.value = max
@@ -47,7 +47,6 @@ const events = computed<MapEvent[]>(() =>
 
 const currentEvent = computed(() => events.value[selectedEvIdx.value])
 
-// curMonth → store 동기화
 watch(curMonth, m => { store.currentRelativeMonth = m - 3 })
 
 // ── 이벤트 선택 ────────────────────────────────────────────────────────────
@@ -72,9 +71,9 @@ async function handleReportAction() {
   }
   if (store.selectedEventId === null || !store.analysisResult) return
   await reportStore.generate({
-    event_id: store.selectedEventId,
+    event_id:      store.selectedEventId,
     window_months: store.windowMonths,
-    region_codes: store.regionCodes.length > 0 ? store.regionCodes : undefined,
+    region_codes:  store.regionCodes.length > 0 ? store.regionCodes : undefined,
   })
 }
 
@@ -89,7 +88,7 @@ onMounted(async () => {
 <template>
   <!-- 지도 초기화 로딩 -->
   <div id="loading">
-    <div class="ld-title">SHOCKPROP</div>
+    <div class="ld-title">ESTATEFLOW</div>
     <div class="ld-bar"><div class="ld-fill" id="ldFill" style="width:0%"></div></div>
     <div class="ld-txt" id="ldTxt">행정구역 데이터 로딩 중...</div>
   </div>
@@ -105,9 +104,9 @@ onMounted(async () => {
 
   <div class="ui">
     <div class="hdr">
-      <div class="logo-sq">SP</div>
+      <div class="logo-sq">EF</div>
       <div>
-        <div class="logo-nm">ShockProp</div>
+        <div class="logo-nm">EstateFlow</div>
         <div class="logo-sb">부동산 정책 충격 전파 분석</div>
       </div>
       <div class="hdiv"></div>
@@ -132,20 +131,21 @@ onMounted(async () => {
         <div class="ltog" :class="{ on: showLabels }" @click="showLabels = !showLabels">
           <div class="tog-dot"></div>지역 라벨
         </div>
+        <button class="search-btn" @click="router.push('/search')">거래 검색</button>
         <div class="live"><div class="ldot"></div>LIVE</div>
       </div>
     </div>
 
-      <MetricsPanel
-        :regions="store.analysisResult?.regions ?? []"
-        :current-relative-month="curMonth - 3"
-      />
-      <ReportPreview
-        v-if="reportStore.report"
-        :report="reportStore.report"
-        :downloading="reportStore.loading"
-        @download="reportStore.download"
-      />
+    <MetricsPanel
+      :regions="store.analysisResult?.regions ?? []"
+      :current-relative-month="curMonth - 3"
+    />
+    <ReportPreview
+      v-if="reportStore.report"
+      :report="reportStore.report"
+      :downloading="reportStore.loading"
+      @download="reportStore.download"
+    />
 
       <TimelineSlider
       :months="MONTHS"
