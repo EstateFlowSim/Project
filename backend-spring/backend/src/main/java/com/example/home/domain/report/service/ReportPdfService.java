@@ -8,8 +8,11 @@ import com.openhtmltopdf.pdfboxout.PdfRendererBuilder;
 import java.io.ByteArrayOutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.OffsetDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -94,17 +97,42 @@ public class ReportPdfService {
         JsonNode analysisSummary = report.analysisResult() == null
                 ? null
                 : report.analysisResult().path("summary");
+        JsonNode topRise = report.analysisResult() == null ? null
+                : report.analysisResult().path("rankings").path("top_price_rise");
+        JsonNode topRiseRegion = topRise != null && topRise.isArray() && !topRise.isEmpty()
+                ? topRise.get(0) : null;
         return new ReportPdfView(
                 report.draft().title(),
-                report.createdAt(),
+                displayDate(report.createdAt()),
                 report.source().windowMonths(),
                 intValue(analysisSummary, "region_count"),
                 intValue(analysisSummary, "rising_region_count"),
                 intValue(analysisSummary, "falling_region_count"),
+                signedPercent(analysisSummary, "avg_price_change_after_window_pct"),
+                signedPercent(analysisSummary, "avg_volume_change_after_window_pct"),
+                topRiseRegionName(topRiseRegion),
+                signedPercent(topRiseRegion, "final_price_change_pct"),
                 summary,
                 sections,
                 regionalTrends,
                 cautions);
+    }
+
+    private String displayDate(String createdAt) {
+        try {
+            return OffsetDateTime.parse(createdAt).format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+        } catch (Exception ignored) {
+            return createdAt;
+        }
+    }
+
+    private String topRiseRegionName(JsonNode region) {
+        if (region == null) {
+            return "집계 정보 없음";
+        }
+        String regionCode = text(region, "dong_code");
+        return RegionNameResolver.regionNames().containsKey(regionCode)
+                ? RegionNameResolver.displayName(regionCode) : "집계 정보 없음";
     }
 
     private String text(JsonNode node, String field) {
@@ -129,6 +157,13 @@ public class ReportPdfService {
         return node.path(field).isInt() ? node.path(field).asInt() : 0;
     }
 
+    private String signedPercent(JsonNode node, String field) {
+        if (node == null || !node.path(field).isNumber()) {
+            return "-";
+        }
+        return String.format(Locale.US, "%+.2f%%", node.path(field).asDouble());
+    }
+
     public record ReportPdfView(
             String title,
             String createdAt,
@@ -136,6 +171,10 @@ public class ReportPdfService {
             int regionCount,
             int risingRegionCount,
             int fallingRegionCount,
+            String averagePriceChange,
+            String averageVolumeChange,
+            String topRiseRegion,
+            String topRisePercent,
             String summary,
             List<SectionView> sections,
             List<RegionalTrendView> regionalTrends,
