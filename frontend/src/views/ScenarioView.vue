@@ -23,6 +23,18 @@ const currentRoundExplanations = computed<Record<string, ScenarioRoundExplanatio
   ),
 )
 
+const stanceGuide = [
+  { code: 'BUY', label: '매수', description: '가격 흐름을 긍정적으로 보고 진입을 고려하는 상태' },
+  { code: 'HOLD', label: '보유', description: '현재 포지션을 유지하며 추가 행동을 늦추는 상태' },
+  { code: 'WATCH', label: '관망', description: '변동성을 지켜보며 의사결정을 유보하는 상태' },
+  { code: 'SELL', label: '매도', description: '위험이나 약세를 보고 처분을 고려하는 상태' },
+  { code: 'MOVE', label: '이동', description: '다른 지역이나 대안을 탐색하는 상태' },
+]
+
+const stanceMap = Object.fromEntries(
+  stanceGuide.map(item => [item.code, item]),
+)
+
 function explanationForRegion(regionCode: string): ScenarioRoundExplanationRegion {
   return currentRoundExplanations.value[regionCode] ?? {
     region_code: regionCode,
@@ -67,6 +79,17 @@ function regionDisplayName(regionCode: string, regionName?: string): string {
   return regionName?.trim() || regionNames[regionCode] || `지역 코드 ${regionCode}`
 }
 
+function stanceLabel(value: string | null | undefined): string {
+  if (!value) return '-'
+  return stanceMap[value]?.label ?? value
+}
+
+function stanceWithCode(value: string | null | undefined): string {
+  if (!value) return '-'
+  const label = stanceLabel(value)
+  return label === value ? value : `${label} (${value})`
+}
+
 async function loadScenario(): Promise<void> {
   const scenarioId = String(route.params.scenarioId ?? '')
   if (!scenarioId) {
@@ -107,6 +130,13 @@ onMounted(loadScenario)
               분석 결과를 바탕으로 반응성이 높은 지역을 추리고, 실수요자·투자자·갈아타기 수요층 등
               시장 참여자가 정책 시행 시점별로 어떻게 움직이는지 확인합니다.
             </p>
+            <div class="stance-guide">
+              <div v-for="stance in stanceGuide" :key="stance.code" class="stance-guide-item">
+                <strong>{{ stance.label }}</strong>
+                <span>{{ stance.code }}</span>
+                <p>{{ stance.description }}</p>
+              </div>
+            </div>
           </div>
 
         </section>
@@ -130,29 +160,7 @@ onMounted(loadScenario)
             </div>
             <div class="summary-card">
               <span>전체 시장 분위기</span>
-              <strong>{{ scenario.final_summary.dominant_market_mood }}</strong>
-            </div>
-          </section>
-
-          <section class="scenario-section">
-            <h2>선정된 지역</h2>
-            <div class="region-grid">
-              <article v-for="region in scenario.selected_regions" :key="region.region_code" class="region-card">
-                <div class="region-head">
-                  <strong>{{ regionDisplayName(region.region_code, region.region_name) }}</strong>
-                  <span>{{ region.region_code }}</span>
-                </div>
-
-                <div class="region-scores">
-                  <span>투자 민감도 {{ region.speculation_score.toFixed(2) }}</span>
-                  <span>안정성 {{ region.stability_score.toFixed(2) }}</span>
-                  <span>이동 수요 {{ region.migration_score.toFixed(2) }}</span>
-                </div>
-
-                <ul class="region-reasons">
-                  <li v-for="reason in region.selection_reasons" :key="reason">{{ reason }}</li>
-                </ul>
-              </article>
+              <strong>{{ stanceWithCode(scenario.final_summary.dominant_market_mood) }}</strong>
             </div>
           </section>
 
@@ -184,7 +192,7 @@ onMounted(loadScenario)
               <div class="round-overview">
                 <div>
                   <span class="round-label">{{ roundDisplayLabel(currentRound.relative_month) }}</span>
-                  <strong>{{ currentRound.market_mood }}</strong>
+                  <strong>{{ stanceWithCode(currentRound.market_mood) }}</strong>
                 </div>
                 <p>{{ currentRound.narrative }}</p>
               </div>
@@ -201,38 +209,13 @@ onMounted(loadScenario)
                       <strong>{{ regionDisplayName(region.region_code, region.region_name) }}</strong>
                       <span>{{ region.region_code }}</span>
                     </div>
-                    <em>{{ region.dominant_stance }}</em>
-                  </div>
-
-                  <div class="round-metrics">
-                    <span>가격 변화 {{ signed(region.price_change_pct) }}</span>
-                    <span>거래량 변화 {{ signed(region.volume_change_pct) }}</span>
-                    <span>영향 점수 {{ region.impact_score?.toFixed(2) ?? '-' }}</span>
-                  </div>
-
-                  <div class="persona-list">
-                    <article
-                      v-for="persona in region.persona_states"
-                      :key="`${region.region_code}-${persona.persona_type}`"
-                      class="persona-card"
-                    >
-                      <div class="persona-head">
-                        <strong>{{ persona.persona_label }}</strong>
-                        <span>{{ persona.total_agents }}명</span>
-                      </div>
-
-                      <div class="persona-stances">
-                        <span v-for="(count, stance) in persona.stance_counts" :key="stance">{{ stance }} {{ count }}</span>
-                      </div>
-
-                      <p>평균 신호 {{ persona.average_signal?.toFixed(2) ?? '-' }}</p>
-                    </article>
+                    <em>{{ stanceWithCode(region.dominant_stance) }}</em>
                   </div>
 
                   <section v-if="currentRoundExplanations[region.region_code]" class="region-ai-analysis">
                     <div class="region-ai-title">
                       <span>AI 분석</span>
-                      <em>{{ explanationForRegion(region.region_code).dominant_stance }}</em>
+                      <em>{{ stanceWithCode(explanationForRegion(region.region_code).dominant_stance) }}</em>
                     </div>
                     <p class="region-text">{{ explanationForRegion(region.region_code).region_explanation }}</p>
 
@@ -242,11 +225,38 @@ onMounted(loadScenario)
                         :key="`${region.region_code}-${persona.persona_type}`"
                         class="explanation-persona-card"
                       >
-                        <strong>{{ persona.persona_label }} · {{ persona.dominant_stance }}</strong>
+                        <strong>{{ persona.persona_label }} · {{ stanceWithCode(persona.dominant_stance) }}</strong>
                         <p>{{ persona.explanation }}</p>
                       </article>
                     </div>
                   </section>
+
+                  <template v-else>
+                    <div class="round-metrics">
+                      <span>가격 변화 {{ signed(region.price_change_pct) }}</span>
+                      <span>거래량 변화 {{ signed(region.volume_change_pct) }}</span>
+                      <span>영향 점수 {{ region.impact_score?.toFixed(2) ?? '-' }}</span>
+                    </div>
+
+                    <div class="persona-list">
+                      <article
+                        v-for="persona in region.persona_states"
+                        :key="`${region.region_code}-${persona.persona_type}`"
+                        class="persona-card"
+                      >
+                        <div class="persona-head">
+                          <strong>{{ persona.persona_label }}</strong>
+                          <span>{{ persona.total_agents }}명</span>
+                        </div>
+
+                        <div class="persona-stances">
+                          <span v-for="(count, stance) in persona.stance_counts" :key="stance">{{ stanceLabel(String(stance)) }} {{ count }}</span>
+                        </div>
+
+                        <p>평균 신호 {{ persona.average_signal?.toFixed(2) ?? '-' }}</p>
+                      </article>
+                    </div>
+                  </template>
                 </article>
               </div>
             </div>
@@ -279,6 +289,11 @@ onMounted(loadScenario)
 .scenario-kicker { font-size: 11px; font-weight: 700; letter-spacing: .12em; color: #3b82f6; margin-bottom: 8px; }
 .scenario-hero h1 { font-size: 28px; color: #0f172a; margin-bottom: 10px; }
 .scenario-sub { font-size: 14px; line-height: 1.7; color: #64748b; max-width: 720px; }
+.stance-guide { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; margin-top: 18px; }
+.stance-guide-item { border: 1px solid #e2e8f0; border-radius: 10px; background: #f8fafc; padding: 10px; min-width: 0; }
+.stance-guide-item strong { display: inline-block; color: #0f172a; font-size: 13px; margin-right: 5px; }
+.stance-guide-item span { color: #3b82f6; font-size: 11px; font-weight: 800; letter-spacing: .04em; }
+.stance-guide-item p { color: #64748b; font-size: 11px; line-height: 1.45; margin-top: 5px; word-break: keep-all; }
 .scenario-summary { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; padding: 20px; }
 .summary-card { background: #f8fafc; border-radius: 12px; padding: 18px; display: flex; flex-direction: column; gap: 8px; }
 .summary-card span { font-size: 12px; color: #64748b; }
@@ -286,25 +301,17 @@ onMounted(loadScenario)
 .scenario-section { padding: 24px; }
 .scenario-section h2,
 .scenario-explanation h3 { font-size: 18px; color: #0f172a; margin-bottom: 16px; }
-.region-grid,
 .round-region-list,
 .explanation-region-list { display: grid; gap: 16px; }
-.region-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-.region-card,
 .round-region-card,
 .explanation-region-card { border: 1px solid #e2e8f0; border-radius: 14px; padding: 18px; }
-.region-head,
 .round-region-head,
 .persona-head { display: flex; justify-content: space-between; gap: 12px; align-items: center; }
-.region-head strong,
 .round-region-head strong { color: #0f172a; }
-.region-head span,
 .round-region-head span,
 .persona-head span { font-size: 12px; color: #94a3b8; }
-.region-scores,
 .round-metrics,
 .persona-stances { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 12px; font-size: 13px; color: #475569; }
-.region-reasons { margin-top: 14px; padding-left: 18px; color: #475569; font-size: 13px; line-height: 1.6; }
 .round-header { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 16px; }
 .round-tabs { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 18px; }
 .round-tab,
@@ -337,7 +344,7 @@ onMounted(loadScenario)
 .persona-list { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .persona-card,
 .explanation-persona-card { background: #f8fafc; border-radius: 12px; padding: 14px; }
-.region-ai-analysis { border-top: 1px solid #dbeafe; margin-top: 18px; padding-top: 16px; }
+.region-ai-analysis { background: #f8fafc; border: 1px solid #dbeafe; border-radius: 12px; margin-top: 14px; padding: 14px; }
 .region-ai-title { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .region-ai-title em { color: #2563eb; font-size: 12px; font-style: normal; font-weight: 700; }
 .scenario-state { padding: 28px; background: #fff; border-radius: 16px; color: #64748b; }
@@ -346,7 +353,7 @@ onMounted(loadScenario)
 
 @media (max-width: 960px) {
   .scenario-summary,
-  .region-grid,
+  .stance-guide,
   .persona-list { grid-template-columns: 1fr; }
 
   .scenario-hero,
