@@ -1,0 +1,101 @@
+name: estateflow
+
+services:
+
+  # ── MySQL ───────────────────────────────────────────────────────
+  mysql:
+    image: mysql:8.0
+    container_name: estateflow-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-estateflow}
+      MYSQL_DATABASE: estateflow
+      MYSQL_USER: ${DB_USERNAME:-estateflow}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-estateflow}
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+      # 초기화 스크립트 (volume이 비어있을 때만 실행됨)
+      - ./backend-spring/scripts/sql/schema.sql:/docker-entrypoint-initdb.d/01_schema.sql:ro
+      - ./backend-spring/scripts/sql/migrations/002_add_analysis_cache.sql:/docker-entrypoint-initdb.d/02_analysis_cache.sql:ro
+      - ./backend-spring/scripts/sql/migrations/003_add_report_history.sql:/docker-entrypoint-initdb.d/03_report_history.sql:ro
+      - ./backend-spring/scripts/sql/migrations/004_add_report_history_deleted_at.sql:/docker-entrypoint-initdb.d/04_report_history_deleted_at.sql:ro
+      - ./backend-spring/scripts/sql/dummy_data.sql:/docker-entrypoint-initdb.d/05_dummy_data.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -u root --password=$$MYSQL_ROOT_PASSWORD --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    restart: unless-stopped
+
+  # ── Redis ────────────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: estateflow-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    command: redis-server --save 60 1 --loglevel warning
+    restart: unless-stopped
+
+  # ── FastAPI (AI 분석 서버) ────────────────────────────────────────
+  fastapi:
+    build:
+      context: ./backend-fastAPI
+    container_name: estateflow-fastapi
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend-fastAPI/result:/app/result        # DuckDB 파일
+      - ./backend-fastAPI/processed:/app/processed  # 전처리 데이터
+    restart: unless-stopped
+
+  # ── Spring Boot ──────────────────────────────────────────────────
+  spring:
+    build:
+      context: ./backend-spring
+    container_name: estateflow-spring
+    ports:
+      - "8080:8080"
+    env_file:
+      - ./backend-spring/backend/.env   # JWT_SECRET_KEY, OPENAI_API_KEY 등 시크릿
+    environment:
+      SPRING_PROFILES_ACTIVE: local
+      # Docker 내부 서비스명으로 덮어쓰기 (env_file의 localhost 값을 override)
+      DB_URL: "jdbc:mysql://mysql:3306/estateflow?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Seoul&characterEncoding=UTF-8"
+      DB_USERNAME: ${DB_USERNAME:-estateflow}
+      DB_PASSWORD: ${DB_PASSWORD:-estateflow}
+      REDIS_HOST: redis
+      AI_SERVER_URL: http://fastapi:8000
+      # Linux 컨테이너용 한글 폰트 경로 (PDF 생성)
+      REPORT_PDF_FONT_PATH: /usr/share/fonts/truetype/nanum/NanumGothic.ttf
+    volumes:
+      - ./backend-spring/backend/seed:/app/seed
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      fastapi:
+        condition: service_started
+    restart: unless-stopped
+
+  # ── Frontend (선택적) ────────────────────────────────────────────
+  # 기본 실행: docker compose up  →  mysql, redis, fastapi, spring 만 올라옴
+  # 프론트 포함: docker compose up --profile frontend
+  frontend:
+    build:
+      context: ./frontend
+    container_name: estateflow-frontend
+    profiles: ["frontend"]
+    ports:
+      - "80:80"
+    depends_on:
+      - spring
+    restart: unless-stopped
+
+volumes:
+  mysql-data:
+  redis-data:
