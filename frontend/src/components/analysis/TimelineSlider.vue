@@ -108,7 +108,7 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="bot">
+  <div class="bot" data-tour="timeline-control">
     <div class="bt-top">
       <div class="bt-l">Event Timeline</div>
       <div class="bt-c">{{ timelineLabel }}</div>

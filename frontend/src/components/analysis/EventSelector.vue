@@ -74,7 +74,7 @@ onUnmounted(() => document.removeEventListener('click', onDocClick))
     <div class="cldiv"></div>
 
     <!-- 그 해 이벤트 칩 -->
-    <div class="clseg clev">
+    <div class="clseg clev" data-tour="event-select">
       <span class="cllbl">{{ activeYear }}년 이벤트 · {{ yearEvents.length }}건</span>
       <div class="clchips">
         <button
@@ -91,7 +91,7 @@ onUnmounted(() => document.removeEventListener('click', onDocClick))
     <div class="cldiv"></div>
 
     <!-- 윈도우 -->
-    <div class="clseg">
+    <div class="clseg" data-tour="period-window">
       <span class="cllbl">분석 윈도우</span>
       <div class="clwin">
         <button

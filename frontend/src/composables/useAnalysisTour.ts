@@ -1,25 +1,58 @@
+import { nextTick } from 'vue'
 import { driver } from 'driver.js'
 import 'driver.js/dist/driver.css'
 
 const TOUR_KEY = 'estateflow-analysis-tour-done'
 
+const TOUR_TARGETS = [
+  '[data-tour="event-select"]',
+  '[data-tour="period-window"]',
+  '[data-tour="timeline-control"]',
+  '[data-tour="metrics-panel"]',
+  '[data-tour="report-button"]',
+]
+
+function hasAllTourTargets() {
+  return TOUR_TARGETS.every(selector => document.querySelector(selector))
+}
+
 export function useAnalysisTour() {
   function startTour() {
-    let d!: ReturnType<typeof driver>
+    let stepRO: ResizeObserver | null = null
 
-    d = driver({
+    const teardownRO = () => {
+      stepRO?.disconnect()
+      stepRO = null
+    }
+
+    const d = driver({
       animate: true,
       smoothScroll: false,
       allowClose: true,
-      overlayOpacity: 0,
+      overlayOpacity: 0.45,
+      stagePadding: 8,
+      stageRadius: 12,
+      popoverOffset: 12,
       popoverClass: 'ef-tour-popover',
       nextBtnText: '다음 →',
       prevBtnText: '이전',
       doneBtnText: '완료',
       showProgress: true,
+
+      onHighlightStarted: (element) => {
+        teardownRO()
+        if (!element) return
+        stepRO = new ResizeObserver(() => d.refresh())
+        stepRO.observe(element)
+      },
+
+      onDeselected: () => {
+        teardownRO()
+      },
+
       steps: [
         {
-          element: '.clseg.clev',
+          element: '[data-tour="event-select"]',
           popover: {
             title: '이벤트 선택',
             description:
@@ -29,7 +62,7 @@ export function useAnalysisTour() {
           },
         },
         {
-          element: '.clwin',
+          element: '[data-tour="period-window"]',
           popover: {
             title: '관측 기간 설정',
             description:
@@ -39,7 +72,7 @@ export function useAnalysisTour() {
           },
         },
         {
-          element: '.bot',
+          element: '[data-tour="timeline-control"]',
           popover: {
             title: '타임라인 조작',
             description:
@@ -49,7 +82,7 @@ export function useAnalysisTour() {
           },
         },
         {
-          element: '.rp-wrap',
+          element: '[data-tour="metrics-panel"]',
           popover: {
             title: '지표 패널',
             description:
@@ -59,7 +92,7 @@ export function useAnalysisTour() {
           },
         },
         {
-          element: '.report-btn',
+          element: '[data-tour="report-button"]',
           popover: {
             title: 'AI 리포트 생성',
             description:
@@ -70,20 +103,36 @@ export function useAnalysisTour() {
         },
       ],
 
-      onDestroyStarted: () => {
+      onDestroyed: () => {
+        teardownRO()
         localStorage.setItem(TOUR_KEY, '1')
-        d.destroy()
       },
     })
 
     d.drive()
   }
 
-  function startTourIfFirst() {
-    if (!localStorage.getItem(TOUR_KEY)) {
-      startTour()
-    }
+  async function startTourIfFirst() {
+    if (localStorage.getItem(TOUR_KEY)) return
+
+    await nextTick()
+
+    window.setTimeout(() => {
+      if (hasAllTourTargets()) {
+        startTour()
+      } else {
+        console.warn(
+          '[analysis-tour] Some tour targets are missing:',
+          TOUR_TARGETS.filter(selector => !document.querySelector(selector)),
+        )
+      }
+    }, 300)
   }
 
-  return { startTour, startTourIfFirst }
+  function resetTour() {
+    localStorage.removeItem(TOUR_KEY)
+    startTour()
+  }
+
+  return { startTour, startTourIfFirst, resetTour }
 }

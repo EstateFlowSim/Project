@@ -31,7 +31,7 @@ const MONTHS = computed(() => {
 // ── ctrl-bar 높이 추적 → MetricsPanel top 동적 계산 ───────────────────────
 const ctrlBarRef  = ref<HTMLElement | null>(null)
 const timelineRef = ref<HTMLElement | null>(null)
-const panelTop    = ref(128) // AppHeader(60) + ctrl-bar 기본 높이(52) + margin(16)
+const panelTop    = ref(144) // AppHeader(60) + ctrl-bar 기본 높이(60) + margin(24)
 const panelBottom = ref(116) // timeline 기본 높이 + margin(16)
 let   ctrlBarRO:  ResizeObserver | null = null
 let   timelineRO: ResizeObserver | null = null
@@ -61,6 +61,16 @@ const events = computed<MapEvent[]>(() =>
 const currentEvent = computed(() => events.value[selectedEvIdx.value])
 
 watch(curMonth, m => { store.currentRelativeMonth = m - 3 })
+
+// 분석 결과가 처음 들어온 뒤 투어 시작 — 데이터 없이 투어하면 메트릭 패널이 비어 있음
+watch(
+  () => store.analysisResult,
+  (result) => {
+    if (!result) return
+    void startTourIfFirst()
+  },
+  { once: true },
+)
 
 // ── 이벤트 선택 ────────────────────────────────────────────────────────────
 function onEventSelect(i: number) {
@@ -131,7 +141,7 @@ onMounted(async () => {
   if (ctrlBarRef.value) {
     ctrlBarRO = new ResizeObserver((entries) => {
       const entry = entries[0]
-      if (entry) panelTop.value = 60 + Math.round(entry.contentRect.height) + 16
+      if (entry) panelTop.value = 60 + Math.round(entry.contentRect.height) + 24
     })
     ctrlBarRO.observe(ctrlBarRef.value)
   }
@@ -147,8 +157,6 @@ onMounted(async () => {
   await store.fetchEvents()
   const first = events.value[0]
   if (first) store.selectEvent(first.id)
-
-  setTimeout(startTourIfFirst, 800)
 })
 
 onUnmounted(() => {
@@ -191,6 +199,7 @@ onUnmounted(() => {
       <div class="ctrl-bar-r">
         <button
           class="report-btn"
+          data-tour="report-button"
           :disabled="reportStore.loading || !store.analysisResult || store.loading"
           @click="handleReportAction"
         >
@@ -207,7 +216,7 @@ onUnmounted(() => {
     <MetricsPanel
       :regions="store.analysisResult?.regions ?? []"
       :current-relative-month="curMonth - 3"
-      :style="{ top: panelTop + 'px', bottom: panelBottom + 'px' }"
+      :style="{ top: panelTop + 'px', maxHeight: `calc(100vh - ${panelTop}px - ${panelBottom}px)` }"
     />
     <ReportPreview
       v-if="reportStore.report"

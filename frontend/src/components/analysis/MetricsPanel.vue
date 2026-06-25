@@ -66,7 +66,13 @@ const sz = computed(() => SIZES[size.value])
 </script>
 
 <template>
-  <div class="rp-wrap">
+  <div class="rp-wrap" data-tour="metrics-panel">
+    <!-- 사이즈 컨트롤: 패널 상단 -->
+    <div class="rp-szctrl">
+      <button class="rp-sz" :disabled="size === 0" @click="decreaseSize">−</button>
+      <button class="rp-sz" :disabled="size === 2" @click="increaseSize">+</button>
+    </div>
+
     <div class="rp" :style="{ width: sz.rp }">
 
     <div class="mc" :style="{ padding: sz.pad }">
@@ -120,12 +126,6 @@ const sz = computed(() => SIZES[size.value])
 
     </div><!-- /.rp -->
 
-    <!-- 사이즈 컨트롤: 플로팅과 타임라인 사이 -->
-    <div class="rp-szctrl">
-      <button class="rp-sz" :disabled="size === 0" @click="decreaseSize">−</button>
-      <button class="rp-sz" :disabled="size === 2" @click="increaseSize">+</button>
-    </div>
-
   </div><!-- /.rp-wrap -->
 </template>
 
@@ -141,7 +141,7 @@ const sz = computed(() => SIZES[size.value])
   width: 20px;
   height: 20px;
   border-radius: 4px;
-  border: 1px solid var(--border2);
+  border: none;
   background: var(--glass);
   color: var(--w3);
   font-size: 13px;
@@ -154,11 +154,12 @@ const sz = computed(() => SIZES[size.value])
   font-family: 'Inter', sans-serif;
   padding: 0;
   backdrop-filter: blur(8px);
+  box-shadow: 0 1px 3px rgba(0,0,0,.08);
 }
 .rp-sz:hover:not(:disabled) {
-  border-color: var(--border2);
   color: var(--w1);
   background: var(--panel);
+  box-shadow: 0 2px 6px rgba(0,0,0,.10);
 }
 .rp-sz:disabled {
   opacity: 0.25;
