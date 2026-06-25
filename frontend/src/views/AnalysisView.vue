@@ -181,6 +181,7 @@ onUnmounted(() => {
     :current-relative-month="curMonth - 3"
     :show-labels="showLabels"
     :paused="confirmState !== null"
+    :playing="playing"
     @region-click="onRegionClick"
   />
 
