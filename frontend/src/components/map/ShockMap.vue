@@ -25,6 +25,7 @@ const LINE = 'rgba(20,30,50,.12)'
 let baseGeoJSON: Record<string, unknown> | null = null
 let mapLoaded = false
 let animId: number | null = null
+let containerRO: ResizeObserver | null = null
 const dispVals: Record<string, number> = {}
 const regionMap: Record<string, RegionResult> = {}
 
@@ -62,7 +63,7 @@ function pushMapData() {
         height: region ? Math.max(0, v) * 200 : 0,
         base: 0,
         fillColor: region ? col : NODATA,
-        labelColor: region && Math.abs(v) > 2 ? col : 'rgba(60,72,90,0.5)',
+        labelColor: region && Math.abs(v) > 2 ? col : '#64748b',
         active,
       },
     }
@@ -94,6 +95,17 @@ function startAnim() {
     animId = requestAnimationFrame(loop)
   }
   loop()
+}
+
+function updateLabelTextSize(width: number) {
+  if (!mapLoaded || !map) return
+  const scale = Math.min(Math.max(width / 1400, 0.75), 1.3)
+  map.setLayoutProperty('districts-labels', 'text-size', [
+    'interpolate', ['linear'], ['zoom'],
+    9,  Math.round(9  * scale),
+    11, Math.round(12 * scale),
+    13, Math.round(15 * scale),
+  ])
 }
 
 function setProgress(pct: number, txt: string) {
@@ -170,6 +182,11 @@ onMounted(() => {
     antialias: true,
   })
 
+  containerRO = new ResizeObserver(([entry]) => {
+    updateLabelTextSize(entry.contentRect.width)
+  })
+  containerRO.observe(map.getContainer())
+
   map.addControl(new mapboxgl.NavigationControl({ visualizePitch: true }), 'bottom-right')
 
   // compass 버튼: bearing만 리셋 → 초기 위치·줌·pitch·bearing 전체 복원으로 교체
@@ -187,7 +204,11 @@ onMounted(() => {
 
   map.on('load', async () => {
     map!.getStyle().layers.forEach((layer) => {
-      if (layer.type === 'symbol' && layer.layout?.['text-field']) {
+      if (layer.type !== 'symbol' || !layer.layout?.['text-field']) return
+      // 구/동 이름 레이어는 숨김 — 우리 districts-labels가 대체
+      if (/place|settlement|suburb|neighborhood/.test(layer.id)) {
+        map!.setLayoutProperty(layer.id, 'visibility', 'none')
+      } else {
         map!.setLayoutProperty(layer.id, 'text-field', [
           'coalesce',
           ['get', 'name_ko'],
@@ -207,7 +228,7 @@ onMounted(() => {
           height: 0,
           base: 0,
           fillColor: NODATA,
-          labelColor: 'rgba(60,72,90,0.5)',
+          labelColor: '#64748b',
           active: 0,
         },
       }))
@@ -243,15 +264,17 @@ onMounted(() => {
         layout: {
           'text-field': ['get', 'name'],
           'text-font': ['Open Sans Semibold', 'Arial Unicode MS Bold'],
-          'text-size': ['interpolate', ['linear'], ['zoom'], 9, 9, 12, 12],
+          'text-size': ['interpolate', ['linear'], ['zoom'], 9, 9, 11, 12, 13, 15],
           'text-offset': [0, 0],
           'text-anchor': 'center',
           'text-allow-overlap': false,
+          'text-padding': 6,
+          'symbol-avoid-edges': true,
         },
         paint: {
           'text-color': ['get', 'labelColor'],
-          'text-halo-color': 'rgba(255,255,255,0.85)',
-          'text-halo-width': 1.5,
+          'text-halo-color': 'rgba(255,255,255,0.9)',
+          'text-halo-width': 2,
         },
       })
 
@@ -326,6 +349,8 @@ onMounted(() => {
 
       setProgress(100, '완료')
       mapLoaded = true
+      updateLabelTextSize(map!.getContainer().clientWidth)
+      pushMapData()
 
       setTimeout(() => {
         const ld = document.getElementById('loading')
@@ -349,6 +374,7 @@ onMounted(() => {
 
 onUnmounted(() => {
   if (animId !== null) cancelAnimationFrame(animId)
+  containerRO?.disconnect()
   if (map) {
     map.remove()
     map = null
