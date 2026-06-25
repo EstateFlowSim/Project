@@ -22,6 +22,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -66,6 +67,14 @@ public class ReportController {
     @GetMapping("/{reportId}")
     public ResponseEntity<BaseResponse<Map<String, Object>>> get(@PathVariable String reportId) {
         return ResponseEntity.ok(BaseResponse.success("리포트 조회 완료", responseBody(reportService.get(reportId))));
+    }
+
+    @Operation(summary = "내 리포트 삭제", description = "seed 파일은 유지하고 마이페이지 목록에서만 숨김 처리합니다.")
+    @PreAuthorize("isAuthenticated()")
+    @DeleteMapping("/{reportId}")
+    public ResponseEntity<BaseResponse<?>> delete(@PathVariable String reportId) {
+        reportService.deleteMyReport(SecurityUtils.getCurrentUserId(), reportId);
+        return ResponseEntity.ok(BaseResponse.success("리포트 삭제 완료"));
     }
 
     @Operation(summary = "리포트 PDF 다운로드", description = "생성된 리포트를 PDF 파일로 반환합니다.")

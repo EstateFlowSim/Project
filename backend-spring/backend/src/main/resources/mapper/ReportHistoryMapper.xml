@@ -12,26 +12,28 @@
         <result property="status"          column="status"/>
         <result property="createdAt"       column="created_at"/>
         <result property="updatedAt"       column="updated_at"/>
+        <result property="deletedAt"       column="deleted_at"/>
     </resultMap>
 
     <select id="findByUserIdAndAnalysisCacheId" resultMap="reportHistoryResultMap">
-        SELECT report_id, user_id, analysis_cache_id, title, status, created_at, updated_at
+        SELECT report_id, user_id, analysis_cache_id, title, status, created_at, updated_at, deleted_at
         FROM report_history
         WHERE user_id = #{userId}
           AND analysis_cache_id = #{analysisCacheId}
     </select>
 
     <select id="findByUserIdAndReportId" resultMap="reportHistoryResultMap">
-        SELECT report_id, user_id, analysis_cache_id, title, status, created_at, updated_at
+        SELECT report_id, user_id, analysis_cache_id, title, status, created_at, updated_at, deleted_at
         FROM report_history
         WHERE user_id = #{userId}
           AND report_id = #{reportId}
     </select>
 
     <select id="findAllByUserId" resultMap="reportHistoryResultMap">
-        SELECT report_id, user_id, analysis_cache_id, title, status, created_at, updated_at
+        SELECT report_id, user_id, analysis_cache_id, title, status, created_at, updated_at, deleted_at
         FROM report_history
         WHERE user_id = #{userId}
+          AND deleted_at IS NULL
         ORDER BY created_at DESC, report_id DESC
         LIMIT #{size} OFFSET #{offset}
     </select>
@@ -40,6 +42,7 @@
         SELECT COUNT(*)
         FROM report_history
         WHERE user_id = #{userId}
+          AND deleted_at IS NULL
     </select>
 
     <insert id="save">
@@ -62,5 +65,22 @@
             NOW()
         )
     </insert>
+
+    <update id="restoreByUserIdAndAnalysisCacheId">
+        UPDATE report_history
+        SET deleted_at = NULL,
+            updated_at = NOW()
+        WHERE user_id = #{userId}
+          AND analysis_cache_id = #{analysisCacheId}
+    </update>
+
+    <update id="softDelete">
+        UPDATE report_history
+        SET deleted_at = NOW(),
+            updated_at = NOW()
+        WHERE user_id = #{userId}
+          AND report_id = #{reportId}
+          AND deleted_at IS NULL
+    </update>
 
 </mapper>

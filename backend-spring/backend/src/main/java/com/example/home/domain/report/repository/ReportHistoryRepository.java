@@ -24,4 +24,12 @@ public interface ReportHistoryRepository {
     long countByUserId(@Param("userId") Long userId);
 
     void save(ReportHistory history);
+
+    void restoreByUserIdAndAnalysisCacheId(
+            @Param("userId") Long userId,
+            @Param("analysisCacheId") Long analysisCacheId);
+
+    int softDelete(
+            @Param("userId") Long userId,
+            @Param("reportId") String reportId);
 }

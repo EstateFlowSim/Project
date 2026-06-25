@@ -48,6 +48,9 @@ public class DefaultReportService implements ReportService {
 
         ReportHistory existing = reportHistoryRepository.findByUserIdAndAnalysisCacheId(userId, cache.getCacheId());
         if (existing != null) {
+            if (existing.getDeletedAt() != null) {
+                reportHistoryRepository.restoreByUserIdAndAnalysisCacheId(userId, cache.getCacheId());
+            }
             return reportSeedStore.get(existing.getReportId());
         }
 
@@ -89,6 +92,15 @@ public class DefaultReportService implements ReportService {
                 .map(ReportHistoryItem::from)
                 .toList();
         return PageResponse.of(content, safePage, safeSize, reportHistoryRepository.countByUserId(userId));
+    }
+
+    @Override
+    public void deleteMyReport(Long userId, String reportId) {
+        ReportHistory history = reportHistoryRepository.findByUserIdAndReportId(userId, reportId);
+        if (history == null || history.getDeletedAt() != null) {
+            throw new BusinessException(ErrorCode.NOT_FOUND, "삭제할 리포트를 찾을 수 없습니다.");
+        }
+        reportHistoryRepository.softDelete(userId, reportId);
     }
 
     private JsonNode parseAnalysisResult(AnalysisCache cache) {

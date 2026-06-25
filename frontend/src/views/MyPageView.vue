@@ -103,6 +103,11 @@ async function handlePersonaAnalysis(analysisCacheId: number) {
   if (scenario) router.push(`/scenarios/${scenario.scenario_id}`)
 }
 
+async function handleReportDelete(reportId: string) {
+  if (!window.confirm('이 리포트를 목록에서 삭제할까요?')) return
+  await reportStore.remove(reportId)
+}
+
 function fmtDate(value: string) {
   return value?.slice(0, 10) ?? ''
 }
@@ -188,9 +193,13 @@ function fmtDate(value: string) {
                   <span class="mp-report-kicker">AI REPORT</span>
                   <p class="mp-report-title">{{ item.title }}</p>
                 </div>
-                <span class="mp-report-status" :class="{ fallback: item.status === 'DRAFT_FALLBACK' }">
-                  {{ item.status === 'COMPLETED' ? '생성 완료' : '초안' }}
-                </span>
+                <button
+                  class="mp-delete-btn mp-delete-btn-sm"
+                  :disabled="reportStore.loading"
+                  @click="handleReportDelete(item.report_id)"
+                >
+                  삭제
+                </button>
               </div>
 
               <div class="mp-report-meta">
@@ -308,18 +317,21 @@ function fmtDate(value: string) {
 .mp-report-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 10px; }
 .mp-report-kicker { display: block; font-size: 10px; font-weight: 700; letter-spacing: 1.5px; color: #2563eb; margin-bottom: 4px; }
 .mp-report-title { font-size: 16px; font-weight: 700; color: #1e293b; line-height: 1.45; word-break: keep-all; }
-.mp-report-status { padding: 4px 9px; border-radius: 999px; font-size: 11px; font-weight: 700; background: #dcfce7; color: #15803d; white-space: nowrap; }
-.mp-report-status.fallback { background: #fef9c3; color: #a16207; }
 .mp-report-meta { font-size: 12px; color: #94a3b8; margin-bottom: 14px; }
 .mp-report-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .mp-download-btn,
-.mp-persona-btn { width: 100%; padding: 10px; border: 0; border-radius: 8px; font-size: 14px; font-weight: 700; cursor: pointer; transition: background .15s; font-family: inherit; }
+.mp-persona-btn,
+.mp-delete-btn { width: 100%; padding: 10px; border: 0; border-radius: 8px; font-size: 14px; font-weight: 700; cursor: pointer; transition: background .15s; font-family: inherit; }
 .mp-download-btn { background: #1e293b; color: #fff; }
 .mp-download-btn:hover:not(:disabled) { background: #334155; }
 .mp-persona-btn { background: #2563eb; color: #fff; }
 .mp-persona-btn:hover:not(:disabled) { background: #1d4ed8; }
+.mp-delete-btn { background: #fff1f2; color: #be123c; border: 1px solid #fecdd3; }
+.mp-delete-btn:hover:not(:disabled) { background: #ffe4e6; border-color: #fda4af; }
+.mp-delete-btn-sm { width: auto; padding: 5px 10px; border-radius: 999px; font-size: 12px; white-space: nowrap; flex-shrink: 0; }
 .mp-download-btn:disabled,
-.mp-persona-btn:disabled { opacity: .5; cursor: not-allowed; }
+.mp-persona-btn:disabled,
+.mp-delete-btn:disabled { opacity: .5; cursor: not-allowed; }
 .mp-report-pagination { display: flex; align-items: center; justify-content: center; gap: 12px; padding-top: 6px; }
 .mp-page-btn { border: 1px solid #e2e8f0; background: #fff; color: #475569; border-radius: 7px; cursor: pointer; font-family: inherit; font-size: 13px; font-weight: 700; padding: 7px 13px; }
 .mp-page-btn:hover:not(:disabled) { border-color: #cbd5e1; color: #1e293b; }

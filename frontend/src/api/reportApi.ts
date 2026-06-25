@@ -20,6 +20,10 @@ export async function getReport(reportId: string): Promise<BaseResponse<ReportDo
   return response.data
 }
 
+export async function deleteReport(reportId: string): Promise<void> {
+  await http.delete(`/reports/${reportId}`, { timeout: 30_000 })
+}
+
 export async function downloadReportPdf(reportId: string): Promise<{ blob: Blob; filename?: string }> {
   const response = await http.get<Blob>(`/reports/${reportId}/pdf`, { responseType: 'blob', timeout: 60_000 })
   const disposition = response.headers['content-disposition'] as string | undefined

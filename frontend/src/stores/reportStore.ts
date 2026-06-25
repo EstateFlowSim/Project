@@ -1,7 +1,7 @@
 import axios from 'axios'
 import { defineStore } from 'pinia'
 import { ref, watch } from 'vue'
-import { createReport, downloadReportPdf, getMyReports, getReport } from '@/api/reportApi'
+import { createReport, deleteReport, downloadReportPdf, getMyReports, getReport } from '@/api/reportApi'
 import type { CreateReportRequest, ReportDocument, ReportHistoryItem } from '@/types/report'
 
 const REPORT_STORAGE_KEY = 'estateflow:report'
@@ -107,6 +107,25 @@ export const useReportStore = defineStore('report', () => {
     }
   }
 
+  async function remove(reportId: string): Promise<void> {
+    loading.value = true
+    error.value = null
+    try {
+      await deleteReport(reportId)
+      if (report.value?.report_id === reportId) {
+        report.value = null
+      }
+      const nextPage = reports.value.length === 1 && reportPage.value > 1
+        ? reportPage.value - 1
+        : reportPage.value
+      await fetchMyReports(nextPage)
+    } catch (e) {
+      error.value = errorMessage(e)
+    } finally {
+      loading.value = false
+    }
+  }
+
   function getAnalysisCacheId(): number | null {
     return report.value?.analysis_cache_id
       ?? report.value?.source?.analysis_cache_id
@@ -133,6 +152,7 @@ export const useReportStore = defineStore('report', () => {
     fetchMyReports,
     fetchReport,
     download,
+    remove,
     getAnalysisCacheId,
     reset,
   }

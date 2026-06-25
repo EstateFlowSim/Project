@@ -12,4 +12,6 @@ public interface ReportService {
     ReportDocument get(String reportId);
 
     PageResponse<ReportHistoryItem> getMyReports(Long userId, int page, int size);
+
+    void deleteMyReport(Long userId, String reportId);
 }
