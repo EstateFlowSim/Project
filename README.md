@@ -74,7 +74,6 @@
 | DB 접근 | MyBatis |
 | 인증/인가 | Spring Security + JWT |
 | AI | Spring AI — OpenAI 호환 API (리포트 생성, 시나리오 서술) |
-| 분석 DB | DuckDB JDBC |
 | 캐시 | Redis |
 | PDF 생성 | Thymeleaf + OpenHTMLtoPDF |
 | API 문서 | SpringDoc OpenAPI (Swagger UI) |
