@@ -152,8 +152,6 @@ function fmtDate(value: string) {
                 <div class="mp-email">{{ member?.email ?? '-' }}</div>
               </template>
             </div>
-
-            <button class="mp-logout" @click="handleLogout">로그아웃</button>
           </div>
 
           <div class="mp-withdraw-row">
