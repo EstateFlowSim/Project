@@ -6,11 +6,6 @@
   모든 UI 요소 밝기 변화 없이 통일된 상태 유지.
 */
 
-/* ── 활성 요소 하이라이트 (box-shadow: overflow 클리핑 없음) ─────────── */
-.driver-active-element {
-  box-shadow: 0 0 0 2px rgba(30, 100, 220, 0.65), 0 0 12px rgba(30, 100, 220, 0.18) !important;
-  border-radius: 6px !important;
-}
 
 /* ── 팝오버 ──────────────────────────────────────────────────────────── */
 .ef-tour-popover.driver-popover {
