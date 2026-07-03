@@ -11,11 +11,6 @@ assignees: ''
 <!-- 기능에 대한 간단한 설명 -->
 
 
-## 우선순위
-- [ ] High
-- [ ] Medium
-- [ ] Low
-
 ## 완료 조건 (Acceptance Criteria)
 <!-- 이 작업이 끝났다고 볼 수 있는 기준 -->
 - [ ] 
